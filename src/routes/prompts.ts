@@ -1,0 +1,32 @@
+import { Router } from 'express';
+import { authMiddleware, AuthenticatedRequest } from '../middleware/auth';
+import { Database } from '../database/connection';
+
+const router = Router();
+router.use(authMiddleware);
+
+// GET /api/prompts -> merged library (defaults + user overrides)
+router.get('/', async (req: AuthenticatedRequest, res) => {
+	const userId = req.user!.userId;
+	const defaults = await Database.query(`SELECT key, title, content, variables FROM prompt_library`);
+	const overrides = await Database.query(`SELECT key, content FROM user_prompts WHERE user_id = $1`, [userId]);
+	const oMap = new Map(overrides.rows.map((r: any) => [r.key, r.content]));
+	const merged = defaults.rows.map((d: any) => ({ key: d.key, title: d.title, content: oMap.get(d.key) ?? d.content, variables: d.variables }));
+	res.json({ success: true, data: merged });
+});
+
+// POST /api/prompts { action: 'restore_defaults' } -> delete user overrides
+router.post('/', async (req: AuthenticatedRequest, res) => {
+	const userId = req.user!.userId;
+	const { action } = req.body || {};
+	if (action !== 'restore_defaults') {
+		res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Invalid action' } });
+		return;
+	}
+	await Database.query(`DELETE FROM user_prompts WHERE user_id = $1`, [userId]);
+	res.json({ success: true, data: { restored: true } });
+});
+
+export { router as promptsRoutes };
+
+

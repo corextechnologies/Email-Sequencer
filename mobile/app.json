@@ -1,0 +1,31 @@
+{
+  "expo": {
+    "name": "Email Marketing - Bobos.ai",
+    "slug": "email-marketing-bobos",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "assetBundlePatterns": [
+      "assets/**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSContactsUsageDescription": "This app needs access to your contacts to import them for email marketing."
+      },
+      "bundleIdentifier": "com.anonymous.emailmarketingbobos"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#FFFFFF"
+      },
+      "permissions": [
+        "android.permission.READ_CONTACTS"
+      ],
+      "package": "com.anonymous.emailmarketingbobos"
+    },
+    "web": {
+      "bundler": "metro"
+    }
+  }
+}

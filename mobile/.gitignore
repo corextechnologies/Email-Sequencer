@@ -1,0 +1,15 @@
+# Mobile app cache and build files
+node_modules/
+.expo/
+dist/
+web-build/
+
+# Don't follow parent directory
+../src/
+../dist/
+../.env
+../node_modules/
+
+# Ensure isolation
+*.log
+*.tmp
