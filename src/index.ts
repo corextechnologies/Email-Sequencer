@@ -103,8 +103,28 @@ async function startServer() {
 
     app.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
-      console.log(`📊 Health check: http://localhost:${PORT}/health`);
-      console.log(`👥 Contacts API: http://localhost:${PORT}/api/contacts`);
+      
+      // Log Railway deployment URL if available
+      const railwayUrl = process.env.RAILWAY_PUBLIC_DOMAIN || process.env.RAILWAY_STATIC_URL;
+      if (railwayUrl) {
+        console.log(`🚄 Railway URL: https://${railwayUrl}`);
+        console.log(`📊 Health check: https://${railwayUrl}/health`);
+        console.log(`👥 Contacts API: https://${railwayUrl}/api/contacts`);
+        console.log(`🔐 Auth API: https://${railwayUrl}/api/auth`);
+      } else {
+        console.log(`📊 Health check: http://localhost:${PORT}/health`);
+        console.log(`👥 Contacts API: http://localhost:${PORT}/api/contacts`);
+        console.log(`🔐 Auth API: http://localhost:${PORT}/api/auth`);
+      }
+      
+      // Log all environment variables that might contain the deployment URL
+      console.log(`🔍 Environment info:`);
+      console.log(`   NODE_ENV: ${process.env.NODE_ENV || 'not set'}`);
+      console.log(`   PORT: ${PORT}`);
+      console.log(`   RAILWAY_PUBLIC_DOMAIN: ${process.env.RAILWAY_PUBLIC_DOMAIN || 'not set'}`);
+      console.log(`   RAILWAY_STATIC_URL: ${process.env.RAILWAY_STATIC_URL || 'not set'}`);
+      console.log(`   RAILWAY_ENVIRONMENT_NAME: ${process.env.RAILWAY_ENVIRONMENT_NAME || 'not set'}`);
+      console.log(`   RAILWAY_PROJECT_NAME: ${process.env.RAILWAY_PROJECT_NAME || 'not set'}`);
     });
   } catch (error) {
     console.error('❌ Failed to start server:', error);
