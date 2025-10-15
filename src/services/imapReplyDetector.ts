@@ -2,6 +2,7 @@ import Imap from 'imap';
 import { simpleParser } from 'mailparser';
 import { Database } from '../database/connection';
 import { EncryptionHelper } from '../utils/encryption';
+import { Pool } from 'pg';
 
 interface EmailAccount {
   id: number;
@@ -25,30 +26,50 @@ export interface DetectedReply {
 }
 
 export class ImapReplyDetector {
-  private db = Database.getPool();
+  private db: Pool | null = null;
 
-  async checkAllAccountsForReplies(): Promise<DetectedReply[]> {
-    const accounts = await this.getActiveEmailAccounts();
-    const allReplies: DetectedReply[] = [];
-
-    console.log(`🔍 Checking ${accounts.length} email accounts for replies...`);
-
-    for (const account of accounts) {
+  private async ensureDatabaseConnection(): Promise<Pool> {
+    if (!this.db || this.db.ended) {
       try {
-        console.log(`📧 Checking account: ${account.username}`);
-        const replies = await this.checkAccountForReplies(account);
-        allReplies.push(...replies);
-        console.log(`📧 Found ${replies.length} replies from ${account.username}`);
+        await Database.initialize();
+        this.db = Database.getPool();
+        console.log('🔗 Reply detector database connection established');
       } catch (error) {
-        console.error(`❌ Failed to check account ${account.username}:`, error);
+        console.error('❌ Failed to initialize database connection for reply detector:', error);
+        throw new Error('Database connection failed');
       }
     }
-
-    return allReplies;
+    return this.db;
   }
 
-  private async getActiveEmailAccounts(): Promise<EmailAccount[]> {
-    const result = await this.db.query(`
+  async checkAllAccountsForReplies(): Promise<DetectedReply[]> {
+    try {
+      const db = await this.ensureDatabaseConnection();
+      const accounts = await this.getActiveEmailAccounts(db);
+      const allReplies: DetectedReply[] = [];
+
+      console.log(`🔍 Checking ${accounts.length} email accounts for replies...`);
+
+      for (const account of accounts) {
+        try {
+          console.log(`📧 Checking account: ${account.username}`);
+          const replies = await this.checkAccountForReplies(account);
+          allReplies.push(...replies);
+          console.log(`📧 Found ${replies.length} replies from ${account.username}`);
+        } catch (error) {
+          console.error(`❌ Failed to check account ${account.username}:`, error);
+        }
+      }
+
+      return allReplies;
+    } catch (error) {
+      console.error('❌ Error in checkAllAccountsForReplies:', error);
+      return []; // Return empty array instead of crashing
+    }
+  }
+
+  private async getActiveEmailAccounts(db: Pool): Promise<EmailAccount[]> {
+    const result = await db.query(`
       SELECT id, username, imap_host, imap_port, imap_secure, 
              COALESCE(imap_username, username) as imap_username, 
              COALESCE(imap_password, encrypted_password) as imap_password
@@ -165,7 +186,8 @@ export class ImapReplyDetector {
     if (!originalMessageId) return null;
 
     // Find the original message in our database
-    const originalMessage = await this.findOriginalMessage(originalMessageId, account.id);
+    const db = await this.ensureDatabaseConnection();
+    const originalMessage = await this.findOriginalMessage(originalMessageId, account.id, db);
     if (!originalMessage) return null;
 
     return {
@@ -180,8 +202,8 @@ export class ImapReplyDetector {
     };
   }
 
-  private async findOriginalMessage(messageId: string, smtpAccountId: number): Promise<any> {
-    const result = await this.db.query(`
+  private async findOriginalMessage(messageId: string, smtpAccountId: number, db: Pool): Promise<any> {
+    const result = await db.query(`
       SELECT campaign_id, contact_id 
       FROM messages 
       WHERE provider_message_id = $1 
