@@ -36,7 +36,7 @@ const PORT = process.env.PORT || 3007;
 app.use((0, helmet_1.default)());
 app.use((0, cors_1.default)({
     origin: [
-        'http://localhost:3000',
+        'http://localhost:3007',
         'http://localhost:8081',
         'http://localhost:8082',
         'http://localhost:8083',

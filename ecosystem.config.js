@@ -26,11 +26,11 @@ module.exports = {
       log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
       
       // Health monitoring
-      health_check_grace_period: 3000,
+      health_check_grace_period: 3007,
       
       // Advanced options
       kill_timeout: 5000,
-      listen_timeout: 3000,
+      listen_timeout: 3007,
       wait_ready: true,
       
       // Environment variables
