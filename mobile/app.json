@@ -16,6 +16,9 @@
       "bundleIdentifier": "com.anonymous.emailmarketingbobos"
     },
     "android": {
+      "compileSdkVersion": 34,
+      "targetSdkVersion": 34,
+      "buildToolsVersion": "34.0.0",
       "adaptiveIcon": {
         "backgroundColor": "#FFFFFF"
       },
@@ -26,6 +29,11 @@
     },
     "web": {
       "bundler": "metro"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "733209ab-2e49-4c7f-803b-e857edbae25f"
+      }
     }
   }
 }
