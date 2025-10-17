@@ -302,7 +302,7 @@ async function handleSendEmail(queue: JobQueue, job: any) {
     // Generate unsubscribe link
     const token = `${campaign_id}:${contact_id}:${Date.now()}`;
     await db.query(`INSERT INTO unsubscribe_tokens(token,campaign_id,contact_id,expires_at,created_at) VALUES ($1,$2,$3, NOW() + interval '180 days', NOW()) ON CONFLICT DO NOTHING`, [token, campaign_id, contact_id]);
-    const base = process.env.PUBLIC_BASE_URL || 'http://localhost:3000';
+    const base = process.env.PUBLIC_BASE_URL || 'http://localhost:3007';
     const unsubscribeLink = `${base}/api/unsubscribe/${token}`;
     
     // Apply simple text formatting with good indentation
@@ -318,7 +318,7 @@ async function handleSendEmail(queue: JobQueue, job: any) {
     
     if (process.env.FEATURE_TRACKING_PIXEL === 'true') {
       const pixelMethod = process.env.TRACKING_PIXEL_METHOD || 'auto';
-      const pixelUrl = `${process.env.PUBLIC_BASE_URL || 'http://localhost:3000'}/track/open?c=${campaign_id}&ct=${contact_id}&t=${Date.now()}`;
+      const pixelUrl = `${process.env.PUBLIC_BASE_URL || 'http://localhost:3007'}/track/open?c=${campaign_id}&ct=${contact_id}&t=${Date.now()}`;
       
       // Use smart tracking pixel
       html += smartTrackingPixel(pixelUrl, {

@@ -51,7 +51,7 @@ const corsOptions = {
     
     const allowedOrigins = [
       // Development origins
-    'http://localhost:3000',
+    'http://localhost:3007',
     'http://localhost:8081',
     'http://localhost:8082', 
     'http://localhost:8083',

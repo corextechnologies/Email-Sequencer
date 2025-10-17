@@ -16,7 +16,7 @@ const getBaseURL = () => {
   // Check if running on Expo Go or development
   if (__DEV__) {
     // Use your computer's IP address for mobile development
-    return 'http://192.168.100.131:3000/api';
+    return 'http://192.168.100.131:3007/api';
   }
   // For production, use your deployed API URL
   return 'https://your-api-domain.com/api';
@@ -24,7 +24,7 @@ const getBaseURL = () => {
 
  const BASE_URL = getBaseURL();
 
-// const BASE_URL = 'http://localhost:3000/api';
+// const BASE_URL = 'http://localhost:3007/api';
 
 class ApiService {
   private api: AxiosInstance;

@@ -31,7 +31,7 @@ npm run build && npm run start
 
 Create a campaign:
 ```bash
-curl -X POST http://localhost:3000/api/campaigns \
+curl -X POST http://localhost:3007/api/campaigns \
   -H "Authorization: Bearer $JWT" \
   -H "Content-Type: application/json" \
   -d '{"name":"September Launch","timezone":"UTC","send_window_start":"09:00","send_window_end":"17:00"}'
@@ -39,7 +39,7 @@ curl -X POST http://localhost:3000/api/campaigns \
 
 List campaigns:
 ```bash
-curl -X GET http://localhost:3000/api/campaigns \
+curl -X GET http://localhost:3007/api/campaigns \
   -H "Authorization: Bearer $JWT"
 ```
 
@@ -52,27 +52,27 @@ $body=@(
   @{ delay_hours=0; subject_template="Intro"; body_template="Hi {{first_name}}"; enabled=$true },
   @{ delay_hours=48; subject_template="Followup"; body_template="Checking in"; enabled=$true }
 ) | ConvertTo-Json
-Invoke-RestMethod -Method Post -Uri "http://localhost:3000/api/campaigns/$cid/steps" -Headers @{ Authorization="Bearer $jwt"; "Content-Type"="application/json" } -Body $body
+Invoke-RestMethod -Method Post -Uri "http://localhost:3007/api/campaigns/$cid/steps" -Headers @{ Authorization="Bearer $jwt"; "Content-Type"="application/json" } -Body $body
 ```
 
 Reorder steps:
 ```powershell
 $body=@{ step_ids=@(2,1) } | ConvertTo-Json
-Invoke-RestMethod -Method Patch -Uri "http://localhost:3000/api/campaigns/$cid/steps/reorder" -Headers @{ Authorization="Bearer $jwt"; "Content-Type"="application/json" } -Body $body
+Invoke-RestMethod -Method Patch -Uri "http://localhost:3007/api/campaigns/$cid/steps/reorder" -Headers @{ Authorization="Bearer $jwt"; "Content-Type"="application/json" } -Body $body
 ```
 
 Update a step:
 ```powershell
 $body=@{ delay_hours=24; subject_template="Intro (updated)" } | ConvertTo-Json
-Invoke-RestMethod -Method Put -Uri "http://localhost:3000/api/campaigns/$cid/steps/2" -Headers @{ Authorization="Bearer $jwt"; "Content-Type"="application/json" } -Body $body
+Invoke-RestMethod -Method Put -Uri "http://localhost:3007/api/campaigns/$cid/steps/2" -Headers @{ Authorization="Bearer $jwt"; "Content-Type"="application/json" } -Body $body
 ```
 
 Delete a step:
 ```powershell
-Invoke-RestMethod -Method Delete -Uri "http://localhost:3000/api/campaigns/$cid/steps/2" -Headers @{ Authorization="Bearer $jwt" }
+Invoke-RestMethod -Method Delete -Uri "http://localhost:3007/api/campaigns/$cid/steps/2" -Headers @{ Authorization="Bearer $jwt" }
 ```
 ```bash
-curl -X PATCH http://localhost:3000/api/campaigns/1/status \
+curl -X PATCH http://localhost:3007/api/campaigns/1/status \
   -H "Authorization: Bearer $JWT" \
   -H "Content-Type: application/json" \
   -d '{"status":"ready"}'
@@ -83,17 +83,17 @@ Attach contacts (duplicates ignored):
 ```powershell
 $cid=1
 $body=@{ contact_ids=@(101,102,102,103) } | ConvertTo-Json
-Invoke-RestMethod -Method Post -Uri "http://localhost:3000/api/campaigns/$cid/contacts" -Headers @{ Authorization="Bearer $jwt"; "Content-Type"="application/json" } -Body $body
+Invoke-RestMethod -Method Post -Uri "http://localhost:3007/api/campaigns/$cid/contacts" -Headers @{ Authorization="Bearer $jwt"; "Content-Type"="application/json" } -Body $body
 ```
 
 List attached contacts with search and pagination:
 ```powershell
-Invoke-RestMethod -Method Get -Uri "http://localhost:3000/api/campaigns/$cid/contacts?search=john&page=1&limit=20" -Headers @{ Authorization="Bearer $jwt" }
+Invoke-RestMethod -Method Get -Uri "http://localhost:3007/api/campaigns/$cid/contacts?search=john&page=1&limit=20" -Headers @{ Authorization="Bearer $jwt" }
 ```
 
 Delete attached contact:
 ```powershell
-Invoke-RestMethod -Method Delete -Uri "http://localhost:3000/api/campaigns/$cid/contacts/101" -Headers @{ Authorization="Bearer $jwt" }
+Invoke-RestMethod -Method Delete -Uri "http://localhost:3007/api/campaigns/$cid/contacts/101" -Headers @{ Authorization="Bearer $jwt" }
 ```
 ### Mobile demo script (Expo)
 1) Ensure backend is running with `FEATURE_CAMPAIGNS_V2=true`.
@@ -155,7 +155,7 @@ PowerShell example:
 ```powershell
 $cid=1
 $body=@{ num_steps=2; tone="friendly"; CTA="book a demo" } | ConvertTo-Json
-Invoke-RestMethod -Method Post -Uri "http://localhost:3000/api/campaigns/$cid/generate-steps" -Headers @{ Authorization="Bearer $jwt"; "Content-Type"="application/json" } -Body $body
+Invoke-RestMethod -Method Post -Uri "http://localhost:3007/api/campaigns/$cid/generate-steps" -Headers @{ Authorization="Bearer $jwt"; "Content-Type"="application/json" } -Body $body
 ```
 
 ## State Machine
@@ -174,11 +174,11 @@ Rules:
 Examples (PowerShell):
 ```powershell
 $cid=1
-Invoke-RestMethod -Method Post -Uri "http://localhost:3000/api/campaigns/$cid/validate" -Headers @{ Authorization="Bearer $jwt" }
-Invoke-RestMethod -Method Post -Uri "http://localhost:3000/api/campaigns/$cid/launch" -Headers @{ Authorization="Bearer $jwt" }
-Invoke-RestMethod -Method Post -Uri "http://localhost:3000/api/campaigns/$cid/pause" -Headers @{ Authorization="Bearer $jwt" }
-Invoke-RestMethod -Method Post -Uri "http://localhost:3000/api/campaigns/$cid/resume" -Headers @{ Authorization="Bearer $jwt" }
-Invoke-RestMethod -Method Post -Uri "http://localhost:3000/api/campaigns/$cid/cancel" -Headers @{ Authorization="Bearer $jwt" }
+Invoke-RestMethod -Method Post -Uri "http://localhost:3007/api/campaigns/$cid/validate" -Headers @{ Authorization="Bearer $jwt" }
+Invoke-RestMethod -Method Post -Uri "http://localhost:3007/api/campaigns/$cid/launch" -Headers @{ Authorization="Bearer $jwt" }
+Invoke-RestMethod -Method Post -Uri "http://localhost:3007/api/campaigns/$cid/pause" -Headers @{ Authorization="Bearer $jwt" }
+Invoke-RestMethod -Method Post -Uri "http://localhost:3007/api/campaigns/$cid/resume" -Headers @{ Authorization="Bearer $jwt" }
+Invoke-RestMethod -Method Post -Uri "http://localhost:3007/api/campaigns/$cid/cancel" -Headers @{ Authorization="Bearer $jwt" }
 ```
 
 ## Sequencer Worker
@@ -218,7 +218,7 @@ Unsubscribe
 - Worker injects List-Unsubscribe with mailto and `GET /api/unsubscribe/:token`.
 - To test manually:
 ```powershell
-Invoke-RestMethod -Method Get -Uri "http://localhost:3000/api/unsubscribe/TOKEN_HERE"
+Invoke-RestMethod -Method Get -Uri "http://localhost:3007/api/unsubscribe/TOKEN_HERE"
 ```
 
 

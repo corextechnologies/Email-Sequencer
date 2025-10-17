@@ -1,7 +1,7 @@
 // Simple test script to verify API connection
 const axios = require('axios');
 
-const BASE_URL = 'http://192.168.100.162:3000/api';
+const BASE_URL = 'http://192.168.100.162:3007/api';
 
 async function testConnection() {
   try {

@@ -10,6 +10,7 @@ export interface DetectedReply {
 }
 export declare class ImapReplyDetector {
     private db;
+    private ensureDatabaseConnection;
     checkAllAccountsForReplies(): Promise<DetectedReply[]>;
     private getActiveEmailAccounts;
     private checkAccountForReplies;

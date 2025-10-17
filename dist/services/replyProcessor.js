@@ -4,12 +4,27 @@ exports.ReplyProcessor = void 0;
 const connection_1 = require("../database/connection");
 class ReplyProcessor {
     constructor() {
-        this.db = connection_1.Database.getPool();
+        this.db = null;
+    }
+    async ensureDatabaseConnection() {
+        if (!this.db || this.db.ended) {
+            try {
+                await connection_1.Database.initialize();
+                this.db = connection_1.Database.getPool();
+                console.log('🔗 Reply processor database connection established');
+            }
+            catch (error) {
+                console.error('❌ Failed to initialize database connection for reply processor:', error);
+                throw new Error('Database connection failed');
+            }
+        }
+        return this.db;
     }
     async processReply(reply) {
         try {
+            const db = await this.ensureDatabaseConnection();
             // Check if reply already processed
-            const existing = await this.db.query(`
+            const existing = await db.query(`
         SELECT id FROM email_replies WHERE reply_message_id = $1
       `, [reply.reply_message_id]);
             if (existing.rows.length > 0) {
@@ -17,7 +32,7 @@ class ReplyProcessor {
                 return;
             }
             // Insert reply record
-            await this.db.query(`
+            await db.query(`
         INSERT INTO email_replies (
           campaign_id, contact_id, original_message_id, reply_message_id,
           reply_subject, reply_content, reply_sender_email, reply_received_at, processed_at
@@ -33,13 +48,13 @@ class ReplyProcessor {
                 reply.reply_received_at
             ]);
             // Update contact status to 'replied'
-            await this.db.query(`
+            await db.query(`
         UPDATE campaign_contacts 
         SET status = 'replied', last_email_replied_at = NOW()
         WHERE campaign_id = $1 AND contact_id = $2
       `, [reply.campaign_id, reply.contact_id]);
             // Log reply event
-            await this.db.query(`
+            await db.query(`
         INSERT INTO events (campaign_id, contact_id, type, meta, occurred_at)
         VALUES ($1, $2, 'replied', $3, NOW())
       `, [
