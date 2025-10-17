@@ -108,39 +108,43 @@ if (process.env.NODE_ENV === 'production') {
   app.use(morgan('dev'));
 }
 
-// Rate limiting (basic implementation)
-const rateLimitMap = new Map();
-const RATE_LIMIT_WINDOW = parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000'); // 15 minutes
-const RATE_LIMIT_MAX = parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100');
+// Rate limiting (basic implementation) - disabled in development
+if (process.env.NODE_ENV === 'production') {
+  const rateLimitMap = new Map();
+  const RATE_LIMIT_WINDOW = parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000'); // 15 minutes
+  const RATE_LIMIT_MAX = parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100');
 
-app.use((req, res, next) => {
-  const clientIp = req.ip || req.connection.remoteAddress || 'unknown';
-  const now = Date.now();
-  
-  if (!rateLimitMap.has(clientIp)) {
-    rateLimitMap.set(clientIp, { count: 1, resetTime: now + RATE_LIMIT_WINDOW });
-    return next();
-  }
-  
-  const clientData = rateLimitMap.get(clientIp);
-  
-  if (now > clientData.resetTime) {
-    // Reset window
-    clientData.count = 1;
-    clientData.resetTime = now + RATE_LIMIT_WINDOW;
-    return next();
-  }
-  
-  if (clientData.count >= RATE_LIMIT_MAX) {
-    return res.status(429).json({
-      error: 'Too many requests',
-      retryAfter: Math.ceil((clientData.resetTime - now) / 1000)
-    });
-  }
-  
-  clientData.count++;
-  next();
-});
+  app.use((req, res, next) => {
+    const clientIp = req.ip || req.connection.remoteAddress || 'unknown';
+    const now = Date.now();
+    
+    if (!rateLimitMap.has(clientIp)) {
+      rateLimitMap.set(clientIp, { count: 1, resetTime: now + RATE_LIMIT_WINDOW });
+      return next();
+    }
+    
+    const clientData = rateLimitMap.get(clientIp);
+    
+    if (now > clientData.resetTime) {
+      // Reset window
+      clientData.count = 1;
+      clientData.resetTime = now + RATE_LIMIT_WINDOW;
+      return next();
+    }
+    
+    if (clientData.count >= RATE_LIMIT_MAX) {
+      return res.status(429).json({
+        error: 'Too many requests',
+        retryAfter: Math.ceil((clientData.resetTime - now) / 1000)
+      });
+    }
+    
+    clientData.count++;
+    next();
+  });
+} else {
+  console.log('🔓 Rate limiting disabled in development mode');
+}
 
 // Security headers
 app.use((req, res, next) => {
