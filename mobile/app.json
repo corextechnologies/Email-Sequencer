@@ -23,8 +23,11 @@
         "backgroundColor": "#FFFFFF"
       },
       "permissions": [
-        "android.permission.READ_CONTACTS"
+        "android.permission.READ_CONTACTS",
+        "android.permission.INTERNET",
+        "android.permission.ACCESS_NETWORK_STATE"
       ],
+      "usesCleartextTraffic": true,
       "package": "com.anonymous.emailmarketingbobos"
     },
     "web": {
