@@ -15,12 +15,12 @@ import Constants from 'expo-constants';
 // You can find your IP by running: ipconfig (Windows) or ifconfig (Mac/Linux)
 const getBaseURL = () => {
   // Read from app.json extra config
-  const apiUrl = Constants.expoConfig?.extra?.apiUrl;
-  if (apiUrl) {
-    return apiUrl;
-  }
-  // Fallback
-  return 'http://195.35.2.209:3007/api';
+  // const apiUrl = Constants.expoConfig?.extra?.apiUrl;
+  // if (apiUrl) {
+  //   return apiUrl;
+  // }
+  // // Fallback
+  return 'https://nate.nexivio.online/api';
 };
 
  const BASE_URL = getBaseURL();
