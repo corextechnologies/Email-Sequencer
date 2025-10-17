@@ -33,7 +33,8 @@
     "extra": {
       "eas": {
         "projectId": "733209ab-2e49-4c7f-803b-e857edbae25f"
-      }
+      },
+      "appUrl": "http://195.35.2.209:3007/api"
     }
   }
 }

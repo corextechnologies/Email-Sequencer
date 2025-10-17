@@ -9,16 +9,17 @@ import {
   EmailAccount,
   CreateEmailAccountRequest
 } from '../types';
+import Constants from 'expo-constants';
 
 // For development - use your computer's IP address instead of localhost
 // You can find your IP by running: ipconfig (Windows) or ifconfig (Mac/Linux)
 const getBaseURL = () => {
-  // Check if running on Expo Go or development
-  // if (__DEV__) {
-  //   // Use your computer's IP address for mobile development
-  //   return 'http://192.168.100.131:3007/api';
-  // }
-  // For production, use your deployed API URL
+  // Read from app.json extra config
+  const apiUrl = Constants.expoConfig?.extra?.apiUrl;
+  if (apiUrl) {
+    return apiUrl;
+  }
+  // Fallback
   return 'http://195.35.2.209:3007/api';
 };
 
