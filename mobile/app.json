@@ -16,9 +16,6 @@
       "bundleIdentifier": "com.anonymous.emailmarketingbobos"
     },
     "android": {
-      "compileSdkVersion": 34,
-      "targetSdkVersion": 34,
-      "buildToolsVersion": "34.0.0",
       "adaptiveIcon": {
         "backgroundColor": "#FFFFFF"
       },
@@ -27,7 +24,6 @@
         "android.permission.INTERNET",
         "android.permission.ACCESS_NETWORK_STATE"
       ],
-      "usesCleartextTraffic": true,
       "package": "com.anonymous.emailmarketingbobos"
     },
     "web": {
@@ -37,6 +33,16 @@
       "eas": {
         "projectId": "733209ab-2e49-4c7f-803b-e857edbae25f"
       }
-    }
+    },
+    "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
+        }
+      ]
+    ]
   }
 }
