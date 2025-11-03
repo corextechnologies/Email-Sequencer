@@ -28,6 +28,7 @@ const tracking_1 = __importDefault(require("./routes/tracking"));
 const analytics_1 = require("./routes/analytics");
 const replyResponses_1 = require("./routes/replyResponses");
 const profile_1 = require("./routes/profile");
+const versionCheck_1 = require("./middleware/versionCheck");
 // Load environment variables
 dotenv_1.default.config();
 const app = (0, express_1.default)();
@@ -76,9 +77,11 @@ const corsOptions = {
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'X-App-Version', 'X-Platform']
 };
 app.use((0, cors_1.default)(corsOptions));
+// Version check middleware (monitoring mode - Phase 1)
+app.use('/api', versionCheck_1.versionCheckMiddleware);
 // Body parsing middleware
 app.use(express_1.default.json({
     limit: process.env.MAX_REQUEST_SIZE || '10mb',

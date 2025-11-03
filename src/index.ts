@@ -23,6 +23,7 @@ import trackingRoutes from './routes/tracking';
 import { createAnalyticsRoutes } from './routes/analytics';
 import { createReplyResponseRoutes } from './routes/replyResponses';
 import { profileRoutes } from './routes/profile';
+import { versionCheckMiddleware } from './middleware/versionCheck';
 
 // Load environment variables
 dotenv.config();
@@ -75,10 +76,14 @@ const corsOptions = {
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'X-App-Version', 'X-Platform']
 };
 
 app.use(cors(corsOptions));
+
+// Version check middleware (monitoring mode - Phase 1)
+app.use('/api', versionCheckMiddleware);
+
 // Body parsing middleware
 app.use(express.json({ 
   limit: process.env.MAX_REQUEST_SIZE || '10mb',

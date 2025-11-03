@@ -9,7 +9,7 @@ import {
   EmailAccount,
   CreateEmailAccountRequest
 } from '../types';
-import Constants from 'expo-constants';
+//import Constants from 'expo-constants';
 
 // For development - use your computer's IP address instead of localhost
 // You can find your IP by running: ipconfig (Windows) or ifconfig (Mac/Linux)
@@ -39,12 +39,16 @@ class ApiService {
       },
     });
 
-    // Request interceptor to add auth token
+    // Request interceptor to add auth token and version
     this.api.interceptors.request.use(async (config) => {
       const token = await AsyncStorage.getItem('authToken');
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
+      // Add app version to headers for version enforcement
+      const appConfig = require('../../app.json');
+      config.headers['X-App-Version'] = appConfig.expo.version;
+      config.headers['X-Platform'] = 'mobile';
       return config;
     });
 

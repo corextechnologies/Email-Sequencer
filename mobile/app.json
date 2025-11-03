@@ -2,7 +2,7 @@
   "expo": {
     "name": "Email Marketing - Bobos.ai",
     "slug": "email-marketing-bobos",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "assetBundlePatterns": [
@@ -24,7 +24,8 @@
         "android.permission.INTERNET",
         "android.permission.ACCESS_NETWORK_STATE"
       ],
-      "package": "com.anonymous.emailmarketingbobos"
+      "package": "com.anonymous.emailmarketingbobos",
+      "versionCode": 1
     },
     "web": {
       "bundler": "metro"
