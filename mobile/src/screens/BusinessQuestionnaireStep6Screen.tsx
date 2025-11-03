@@ -29,19 +29,85 @@ const BusinessQuestionnaireStep6Screen: React.FC<Props> = ({ navigation }) => {
     const isButtonEnabled = option1 || option2; // Enable button if at least one checkbox selected
 
     const generatePersonas = async () => {
-        if (!isComplete()) {
-            Alert.alert('Incomplete Form', 'Please complete all questionnaire steps before generating personas.');
-            return;
-        }
-
         if (!option1 && !option2) {
             Alert.alert('Selection Required', 'Please select at least one AI enhancement option.');
             return;
         }
 
+        // Check LLM key FIRST before form completion check
+        // This prevents showing "Incomplete Form" error when the real issue is missing LLM key
         setIsGenerating(true);
-
+        
         try {
+            // Pre-validate: Check if LLM key exists FIRST - this is the main blocker
+            try {
+                const savedKeys = await ApiService.getSavedLlmKeys();
+                if (!savedKeys || savedKeys.length === 0) {
+                    setIsGenerating(false);
+                    Alert.alert(
+                        'API Key Required',
+                        'No LLM API key found. Please configure an API key in Settings before generating personas.',
+                        [
+                            { text: 'OK' },
+                            {
+                                text: 'Go to Settings',
+                                onPress: () => navigation.navigate('Settings')
+                            }
+                        ]
+                    );
+                    return;
+                }
+                
+                // Check if at least one key is available
+                const hasValidKey = savedKeys.some(key => key.hasKey === true);
+                if (!hasValidKey) {
+                    setIsGenerating(false);
+                    Alert.alert(
+                        'API Key Required',
+                        'No valid LLM API key found. Please configure an API key in Settings before generating personas.',
+                        [
+                            { text: 'OK' },
+                            {
+                                text: 'Go to Settings',
+                                onPress: () => navigation.navigate('Settings')
+                            }
+                        ]
+                    );
+                    return;
+                }
+            } catch (keyCheckError: any) {
+                // If key check fails, check if it's a NO_API_KEY error
+                const errorData = keyCheckError?.response?.data?.error || keyCheckError?.response?.data || keyCheckError?.error;
+                const errorCode = errorData?.code || keyCheckError?.response?.status;
+                
+                if (errorCode === 'NO_API_KEY' || errorCode === 400 || errorData?.code === 'NO_API_KEY') {
+                    setIsGenerating(false);
+                    Alert.alert(
+                        'API Key Required',
+                        errorData?.message || 'No LLM API key found. Please configure an API key in Settings before generating personas.',
+                        [
+                            { text: 'OK' },
+                            {
+                                text: 'Go to Settings',
+                                onPress: () => navigation.navigate('Settings')
+                            }
+                        ]
+                    );
+                    return;
+                }
+                // If key check fails for other reasons, log but continue - API will handle the error
+                console.warn('Failed to check LLM keys:', keyCheckError);
+                // Continue with generation - API will return proper error if no key exists
+            }
+
+            // Now check form completion AFTER LLM key validation
+            const formComplete = isComplete();
+            if (!formComplete) {
+                setIsGenerating(false);
+                Alert.alert('Incomplete Form', 'Please complete all questionnaire steps before generating personas.');
+                return;
+            }
+
             // Generate personas using the API (provider will be auto-detected on the backend)
             const result = await ApiService.generatePersonas({
                 questionnaireData: data,
@@ -56,8 +122,8 @@ const BusinessQuestionnaireStep6Screen: React.FC<Props> = ({ navigation }) => {
                 `Generated ${result.count} customer personas successfully!`,
                 [
                     { text: 'View Personas', onPress: () => {
-                        // TODO: Navigate to personas list screen when implemented
-                        console.log('Navigate to personas list');
+                        // Navigate to personas list screen
+                        navigation.navigate('PersonasList');
                     }},
                     { text: 'OK', style: 'default' }
                 ]
@@ -66,64 +132,104 @@ const BusinessQuestionnaireStep6Screen: React.FC<Props> = ({ navigation }) => {
         } catch (error: any) {
             console.error('Persona generation error:', error);
             
-            // Handle specific error types
+            // Handle specific error types with improved robustness
             let errorMessage = 'Failed to generate personas. Please try again.';
             let errorTitle = 'Generation Failed';
+            let errorCode: string | number | undefined;
             
-            if (error.response?.data?.error) {
-                const errorData = error.response.data.error;
-                
-                switch (errorData.code) {
-                    case 'NO_API_KEY':
-                        errorTitle = 'API Key Required';
-                        errorMessage = errorData.message;
-                        break;
-                    case 'DECRYPTION_ERROR':
-                        errorTitle = 'Configuration Error';
-                        errorMessage = errorData.message;
-                        break;
-                    case 'TOKEN_LIMIT_EXCEEDED':
-                        errorTitle = 'Request Too Complex';
-                        errorMessage = errorData.message;
-                        break;
-                    case 'LLM_ERROR':
-                        errorTitle = 'AI Service Error';
-                        errorMessage = errorData.message;
-                        break;
-                    case 'INVALID_PROVIDER':
-                        errorTitle = 'Invalid Provider';
-                        errorMessage = errorData.message;
-                        break;
-                    default:
-                        errorMessage = errorData.message || errorMessage;
-                }
+            // Check multiple possible error response structures
+            const errorData = error.response?.data?.error || error.response?.data || error.error;
+            const errorCodeValue = errorData?.code || error.response?.status || error.code;
+            
+            if (errorData) {
+                errorCode = errorData.code || errorCodeValue;
+                errorMessage = errorData.message || errorData.error || error.message || errorMessage;
+            } else if (error.message) {
+                errorMessage = error.message;
             }
             
-            Alert.alert(
-                errorTitle,
-                errorMessage,
-                [
-                    { text: 'OK' },
-                    ...(error.response?.data?.error?.code === 'NO_API_KEY' ? [{
-                        text: 'Go to Settings',
-                        onPress: () => navigation.navigate('Settings')
-                    }] : []),
-                    ...(error.response?.data?.error?.code === 'TOKEN_LIMIT_EXCEEDED' ? [{
-                        text: 'Simplify Request',
-                        onPress: () => {
-                            // Uncheck enhancement options to reduce complexity
-                            setOption1(false);
-                            setOption2(false);
-                        }
-                    }] : [])
-                ]
-            );
+            // Handle specific error codes
+            switch (errorCode) {
+                case 'NO_API_KEY':
+                    errorTitle = 'API Key Required';
+                    errorMessage = errorData?.message || 'No LLM API key found. Please configure an API key in Settings.';
+                    break;
+                case 'DECRYPTION_ERROR':
+                    errorTitle = 'Configuration Error';
+                    errorMessage = errorData?.message || 'Failed to decrypt API key. Please reconfigure your API key in Settings.';
+                    break;
+                case 'TOKEN_LIMIT_EXCEEDED':
+                    errorTitle = 'Request Too Complex';
+                    errorMessage = errorData?.message || 'The request is too complex. Please try with fewer enhancement options.';
+                    break;
+                case 'LLM_ERROR':
+                    errorTitle = 'AI Service Error';
+                    errorMessage = errorData?.message || 'AI service temporarily unavailable. Please try again later.';
+                    break;
+                case 'INVALID_PROVIDER':
+                    errorTitle = 'Invalid Provider';
+                    errorMessage = errorData?.message || 'The specified LLM provider is not supported.';
+                    break;
+                case 'VALIDATION_ERROR':
+                    errorTitle = 'Validation Error';
+                    errorMessage = errorData?.message || 'Invalid questionnaire data. Please complete all required fields.';
+                    break;
+                case 400:
+                    errorTitle = 'Bad Request';
+                    errorMessage = errorData?.message || errorData?.error || 'Invalid request. Please check your input.';
+                    break;
+                case 401:
+                    errorTitle = 'Unauthorized';
+                    errorMessage = 'Authentication failed. Please log in again.';
+                    break;
+                case 403:
+                    errorTitle = 'Forbidden';
+                    errorMessage = 'You do not have permission to perform this action.';
+                    break;
+                case 404:
+                    errorTitle = 'Not Found';
+                    errorMessage = 'The requested resource was not found.';
+                    break;
+                case 500:
+                case 502:
+                case 503:
+                    errorTitle = 'Server Error';
+                    errorMessage = errorData?.message || 'Server temporarily unavailable. Please try again later.';
+                    break;
+                default:
+                    // Use error message if available, otherwise use default
+                    if (errorData?.message) {
+                        errorMessage = errorData.message;
+                    }
+            }
+            
+            // Build alert buttons
+            const alertButtons: any[] = [{ text: 'OK' }];
+            
+            if (errorCode === 'NO_API_KEY') {
+                alertButtons.push({
+                    text: 'Go to Settings',
+                    onPress: () => navigation.navigate('Settings')
+                });
+            } else if (errorCode === 'TOKEN_LIMIT_EXCEEDED') {
+                alertButtons.push({
+                    text: 'Simplify Request',
+                    onPress: () => {
+                        // Uncheck enhancement options to reduce complexity
+                        setOption1(false);
+                        setOption2(false);
+                    }
+                });
+            }
+            
+            Alert.alert(errorTitle, errorMessage, alertButtons);
         } finally {
             setIsGenerating(false);
         }
     };
     const goNext = () => {
-        Alert.alert('Next', 'No next page defined yet.');
+        // Navigate to Personas list on the last step
+        navigation.navigate('PersonasList');
     };
 
     // Dummy variable for footer button
@@ -209,14 +315,7 @@ const BusinessQuestionnaireStep6Screen: React.FC<Props> = ({ navigation }) => {
                     <Ionicons name="chevron-back" size={18} color={COLORS.text.primary} />
                     <Text style={styles.prevText}>Previous</Text>
                 </TouchableOpacity>
-                <TouchableOpacity
-                    style={[styles.nextButton, !isFormValid && styles.nextButtonDisabled]}
-                    onPress={goNext}
-                    disabled={!isFormValid}
-                >
-                    <Text style={styles.nextText}>Next</Text>
-                    <Ionicons name="arrow-forward" size={18} color={COLORS.text.white} />
-                </TouchableOpacity>
+                {/* Hide "Next" button on last step (Step 6) */}
             </View>
 
         </SafeAreaView>

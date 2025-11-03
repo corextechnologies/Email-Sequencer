@@ -69,7 +69,7 @@ const BusinessQuestionnaireStep2Screen: React.FC<Props> = ({ navigation }: Props
                         multiline
                         value={productsServices} // keep the state empty initially
                         onChangeText={setProductsServices}
-                        placeholder="Vercel offers a range of products and services including Next.js, Turborepo, AI SDK, CI/CD infrastructure, delivery network, AI infrastructure, observability tools, security platform, and various solutions for AI apps, composable commerce, marketing sites, multi-tenant platforms, and web apps."
+                        placeholder="List your main products and services. For example: We offer a SaaS platform for project management, mobile applications for iOS and Android, web-based dashboard tools, API integrations, consulting services, and custom development solutions."
                         placeholderTextColor="#9ca3af" // grey placeholder
                         style={styles.textArea}
                         textAlignVertical="top"

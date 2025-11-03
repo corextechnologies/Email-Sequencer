@@ -24,7 +24,8 @@ const BusinessQuestionnaireStep4Screen: React.FC<Props> = ({ navigation }) => {
     const goNext = () => {
         updateData({
             challenges: customerChallenges,
-            valueProposition: data.valueProposition || "Default value proposition here"
+            // Only preserve existing valueProposition if it exists, don't set a default
+            // Let Step 5 handle its own state initialization
         });
         navigation.navigate('BusinessQuestionnaireStep5');
     };
@@ -70,7 +71,7 @@ const BusinessQuestionnaireStep4Screen: React.FC<Props> = ({ navigation }) => {
                     <TextInput
                         value={customerChallenges}
                         onChangeText={setCustomerChallenges}
-                        placeholder="Describe main problems your customers face"
+                        placeholder="What challenges do your customers face? For example: Difficulty managing multiple projects efficiently, lack of real-time collaboration tools, time-consuming manual processes, limited budget for enterprise solutions, and need for better data insights."
                         placeholderTextColor="#9ca3af"
                         style={[styles.input, { height: 120, textAlignVertical: 'top' }]}
                         multiline

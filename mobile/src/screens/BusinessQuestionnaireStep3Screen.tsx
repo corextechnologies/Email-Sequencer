@@ -73,7 +73,7 @@ const BusinessQuestionnaireStep3Screen: React.FC<Props> = ({ navigation }) => {
                     <TextInput
                         value={targetMarket}
                         onChangeText={setTargetMarket}
-                        placeholder="Describe your target market"
+                        placeholder="Describe your ideal customers. For example: Small to medium-sized businesses in the technology sector, marketing professionals between 25-45 years old, startup founders looking for scalable solutions, and enterprise teams seeking automation tools."
                         placeholderTextColor="#9ca3af"
                         style={[styles.input, { height: 120, textAlignVertical: 'top' }]}
                         multiline

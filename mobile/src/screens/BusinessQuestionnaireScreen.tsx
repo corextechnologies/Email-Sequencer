@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import {
     View,
     Text,
@@ -10,8 +10,10 @@ import {
     Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { useQuestionnaire } from '../contexts/QuestionnaireContext';
 import ScanWebsiteModal from '../components/ScanWebsiteModal';
+import Toast from '../components/Toast';
 import ApiService from '../services/api';
 import { ActivityIndicator } from 'react-native';
 import { COLORS } from '../constants/colors';
@@ -28,6 +30,9 @@ const BusinessQuestionnaireScreen: React.FC<Props> = ({ navigation }) => {
 
     const [modalVisible, setModalVisible] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [hasLlmKey, setHasLlmKey] = useState(false);
+    const [checkingLlmKey, setCheckingLlmKey] = useState(true);
+    const [toastVisible, setToastVisible] = useState(false);
 
 
     const totalSteps = 6;
@@ -39,7 +44,39 @@ const BusinessQuestionnaireScreen: React.FC<Props> = ({ navigation }) => {
         [companyName, industry, description]
     );
 
+    // Check LLM key availability - refetch when screen comes into focus
+    const checkLlmKey = useCallback(async () => {
+        try {
+            setCheckingLlmKey(true);
+            const savedKeys = await ApiService.getSavedLlmKeys();
+            const hasValidKey = savedKeys && savedKeys.length > 0 && savedKeys.some(key => key.hasKey === true);
+            setHasLlmKey(hasValidKey);
+        } catch (error: any) {
+            console.warn('Failed to check LLM keys:', error);
+            setHasLlmKey(false);
+        } finally {
+            setCheckingLlmKey(false);
+        }
+    }, []);
+
+    // Check on mount
+    useEffect(() => {
+        checkLlmKey();
+    }, [checkLlmKey]);
+
+    // Refresh when screen comes into focus (e.g., after returning from Settings)
+    useFocusEffect(
+        useCallback(() => {
+            checkLlmKey();
+        }, [checkLlmKey])
+    );
+
     const handleScanWebsite = () => {
+        if (!hasLlmKey) {
+            // Show toast notification
+            setToastVisible(true);
+            return;
+        }
         setModalVisible(true);
     };
 
@@ -47,6 +84,67 @@ const BusinessQuestionnaireScreen: React.FC<Props> = ({ navigation }) => {
         try {
             setModalVisible(false);
             setLoading(true);
+
+            // Pre-validate: Check if LLM key exists BEFORE scanning website
+            try {
+                const savedKeys = await ApiService.getSavedLlmKeys();
+                if (!savedKeys || savedKeys.length === 0) {
+                    setLoading(false);
+                    Alert.alert(
+                        'API Key Required',
+                        'No LLM API key found. Please configure an API key in Settings before scanning websites.',
+                        [
+                            { text: 'OK' },
+                            {
+                                text: 'Go to Settings',
+                                onPress: () => navigation.navigate('Settings')
+                            }
+                        ]
+                    );
+                    return;
+                }
+                
+                // Check if at least one key is available
+                const hasValidKey = savedKeys.some(key => key.hasKey === true);
+                if (!hasValidKey) {
+                    setLoading(false);
+                    Alert.alert(
+                        'API Key Required',
+                        'No valid LLM API key found. Please configure an API key in Settings before scanning websites.',
+                        [
+                            { text: 'OK' },
+                            {
+                                text: 'Go to Settings',
+                                onPress: () => navigation.navigate('Settings')
+                            }
+                        ]
+                    );
+                    return;
+                }
+            } catch (keyCheckError: any) {
+                // If key check fails, check if it's a NO_API_KEY error
+                const errorData = keyCheckError?.response?.data?.error || keyCheckError?.response?.data || keyCheckError?.error;
+                const errorCode = errorData?.code || keyCheckError?.response?.status;
+                
+                if (errorCode === 'NO_API_KEY' || errorCode === 400 || errorData?.code === 'NO_API_KEY') {
+                    setLoading(false);
+                    Alert.alert(
+                        'API Key Required',
+                        errorData?.message || 'No LLM API key found. Please configure an API key in Settings before scanning websites.',
+                        [
+                            { text: 'OK' },
+                            {
+                                text: 'Go to Settings',
+                                onPress: () => navigation.navigate('Settings')
+                            }
+                        ]
+                    );
+                    return;
+                }
+                // If key check fails for other reasons, log but continue - API will handle the error
+                console.warn('Failed to check LLM keys:', keyCheckError);
+                // Continue with scan - API will handle the error if no key exists
+            }
 
             // 1️⃣ API call yahi karo
             const data = await ApiService.scanWebsite(url);
@@ -70,6 +168,54 @@ const BusinessQuestionnaireScreen: React.FC<Props> = ({ navigation }) => {
             });
         } catch (err: any) {
             console.error('❌ Error analyzing website:', err.response?.data || err.message);
+            
+            // Handle API errors with proper messages - ensure we always show an alert
+            const errorResponse = err?.response?.data || err?.response || err;
+            const errorData = errorResponse?.error || errorResponse;
+            const errorCode: string | number | undefined = errorData?.code || errorResponse?.error?.code || err?.response?.status;
+            const errorMessage = errorData?.message || errorResponse?.error?.message || errorData?.error || err?.message;
+            
+            // Debug logging
+            console.log('🔍 Error details:', {
+                status: err?.response?.status,
+                errorCode,
+                errorData,
+                errorResponse,
+                fullError: err
+            });
+            
+            // Always show an alert - check for NO_API_KEY first
+            const isNoApiKey = 
+                errorCode === 'NO_API_KEY' || 
+                errorCode === 400 || 
+                errorData?.code === 'NO_API_KEY' || 
+                errorResponse?.error?.code === 'NO_API_KEY' ||
+                err?.response?.status === 400 ||
+                (err?.response?.status === 400 && errorData?.code === 'NO_API_KEY');
+            
+            if (isNoApiKey) {
+                // Show API Key Required alert with Settings navigation
+                console.log('🚨 Showing NO_API_KEY alert');
+                Alert.alert(
+                    'API Key Required',
+                    errorMessage || 'No LLM API key found. Please configure an API key in Settings before scanning websites.',
+                    [
+                        { text: 'OK' },
+                        {
+                            text: 'Go to Settings',
+                            onPress: () => navigation.navigate('Settings')
+                        }
+                    ]
+                );
+            } else {
+                // Show generic error alert - ALWAYS show something
+                console.log('🚨 Showing generic error alert');
+                const finalErrorMessage = errorMessage || 'Failed to analyze website. Please try again.';
+                Alert.alert(
+                    'Error',
+                    finalErrorMessage
+                );
+            }
         }
         finally {
             // ✅ This will always run — success or error
@@ -130,8 +276,19 @@ const BusinessQuestionnaireScreen: React.FC<Props> = ({ navigation }) => {
                             </Text>
                         </View>
                     </View>
-                    <TouchableOpacity style={styles.scanButton} onPress={handleScanWebsite}>
-                        <Text style={styles.scanButtonText}>Scan Website</Text>
+                    <TouchableOpacity 
+                        style={[
+                            styles.scanButton, 
+                            !hasLlmKey && styles.scanButtonDisabled
+                        ]} 
+                        onPress={handleScanWebsite}
+                    >
+                        <Text style={[
+                            styles.scanButtonText,
+                            !hasLlmKey && styles.scanButtonTextDisabled
+                        ]}>
+                            {checkingLlmKey ? 'Checking...' : 'Scan Website'}
+                        </Text>
                     </TouchableOpacity>
                 </View>
 
@@ -145,7 +302,7 @@ const BusinessQuestionnaireScreen: React.FC<Props> = ({ navigation }) => {
                     <TextInput
                         value={companyName}
                         onChangeText={setCompanyName}
-                        placeholder="e.g., Vercel"
+                        placeholder="e.g., Acme Corp"
                         placeholderTextColor="#9ca3af"
                         style={styles.input}
                     />
@@ -156,7 +313,7 @@ const BusinessQuestionnaireScreen: React.FC<Props> = ({ navigation }) => {
                     <TextInput
                         value={industry}
                         onChangeText={setIndustry}
-                        placeholder="Technology - Cloud Computing"
+                        placeholder="e.g., Software - SaaS Platform"
                         placeholderTextColor="#9ca3af"
                         style={styles.input}
                     />
@@ -167,7 +324,7 @@ const BusinessQuestionnaireScreen: React.FC<Props> = ({ navigation }) => {
                     <TextInput
                         value={description}
                         onChangeText={setDescription}
-                        placeholder="Describe what your company does"
+                        placeholder="Briefly describe what your company does and your core business activities"
                         placeholderTextColor="#9ca3af"
                         style={[styles.input, styles.textArea]}
                         multiline
@@ -210,6 +367,13 @@ const BusinessQuestionnaireScreen: React.FC<Props> = ({ navigation }) => {
                     </View>
                 </View>
             )}
+
+            <Toast
+                visible={toastVisible}
+                message="Please enter LLM API key"
+                onHide={() => setToastVisible(false)}
+                duration={3000}
+            />
 
         </SafeAreaView>
     );
@@ -274,7 +438,12 @@ const styles = StyleSheet.create({
         paddingVertical: 12,
         borderRadius: 9999,
     },
+    scanButtonDisabled: {
+        backgroundColor: COLORS.text.light,
+        opacity: 0.6,
+    },
     scanButtonText: { color: COLORS.text.white, fontSize: 14, fontWeight: '700' },
+    scanButtonTextDisabled: { color: COLORS.text.secondary },
 
     section: { backgroundColor: COLORS.background.primary, borderRadius: 14, padding: 0 },
     sectionTitle: { fontSize: 22, fontWeight: '800', color: COLORS.text.dark, marginBottom: 12 },

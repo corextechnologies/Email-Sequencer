@@ -17,7 +17,7 @@ type Props = { navigation: any };
 
 const BusinessQuestionnaireStep5Screen: React.FC<Props> = ({ navigation }) => {
     const { data, updateData } = useQuestionnaire();
-    const [uniqueValue, setUniqueValue] = useState(data.valueProposition);
+    const [uniqueValue, setUniqueValue] = useState(data.valueProposition || '');
 
     const totalSteps = 6;
     const currentStep = 5; // change this number for each screen
@@ -69,7 +69,7 @@ const BusinessQuestionnaireStep5Screen: React.FC<Props> = ({ navigation }) => {
                     <TextInput
                         value={uniqueValue}
                         onChangeText={setUniqueValue}
-                        placeholder="Describe your unique value proposition"
+                        placeholder="What makes your solution unique? For example: Our platform offers real-time collaboration, AI-powered insights, seamless integrations, competitive pricing with no hidden fees, and dedicated customer support available 24/7."
                         placeholderTextColor="#9ca3af"
                         style={[styles.input, { height: 120, textAlignVertical: 'top' }]}
                         multiline

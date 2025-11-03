@@ -153,6 +153,46 @@ const SettingsScreen: React.FC<Props> = ({ navigation }) => {
     setTestStatus(null);
   };
 
+  const handleDeleteKey = async (provider: string) => {
+    const providerLabel = providers.find(p => p.id === provider)?.label || provider;
+    
+    Alert.alert(
+      'Delete API Key',
+      `Are you sure you want to delete the ${providerLabel} API key? This action cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const result = await ApiService.deleteLlmKey(provider);
+              if (result.success) {
+                Alert.alert('Success', 'API key deleted successfully.');
+                // Refresh the keys list
+                await loadSavedKeys();
+                // If we were editing this key, cancel editing
+                if (editingKey === provider) {
+                  setEditingKey(null);
+                  setEditApiKey('');
+                  setEditProvider('');
+                }
+              } else {
+                Alert.alert('Error', 'Failed to delete API key.');
+              }
+            } catch (error: any) {
+              console.error('Delete key error:', error);
+              Alert.alert(
+                'Error',
+                error?.response?.data?.error?.message || 'Failed to delete API key. Please try again.'
+              );
+            }
+          }
+        }
+      ]
+    );
+  };
+
   const handleSelectEditProvider = (id: string) => {
     setEditProvider(id);
     setProviderModalVisible(false);
@@ -440,13 +480,22 @@ const SettingsScreen: React.FC<Props> = ({ navigation }) => {
                     </View>
                   </View>
                 ) : (
-                  <TouchableOpacity
-                    style={styles.editKeyButton}
-                    onPress={() => handleEditKey(key.provider)}
-                  >
-                    <Ionicons name="create-outline" size={18} color={COLORS.primary} />
-                    <Text style={styles.editKeyText}>Edit</Text>
-                  </TouchableOpacity>
+                  <View style={styles.keyActions}>
+                    <TouchableOpacity
+                      style={styles.editKeyButton}
+                      onPress={() => handleEditKey(key.provider)}
+                    >
+                      <Ionicons name="create-outline" size={18} color={COLORS.primary} />
+                      <Text style={styles.editKeyText}>Edit</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.deleteKeyButton}
+                      onPress={() => handleDeleteKey(key.provider)}
+                    >
+                      <Ionicons name="trash-outline" size={18} color={COLORS.status.error} />
+                      <Text style={styles.deleteKeyText}>Delete</Text>
+                    </TouchableOpacity>
+                  </View>
                 )}
               </View>
             ))}
@@ -874,6 +923,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: COLORS.text.secondary,
   },
+  keyActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   editKeyButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -885,6 +939,20 @@ const styles = StyleSheet.create({
   editKeyText: {
     marginLeft: 4,
     color: COLORS.primary,
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  deleteKeyButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: '#FDE8EA',
+    borderRadius: 8,
+  },
+  deleteKeyText: {
+    marginLeft: 4,
+    color: COLORS.status.error,
     fontSize: 14,
     fontWeight: '500',
   },
