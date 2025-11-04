@@ -11,27 +11,61 @@ const encryption_1 = require("../utils/encryption");
 class ImapReplyDetector {
     constructor() {
         this.db = null;
+        this.previousAccountIds = new Set();
     }
     async ensureDatabaseConnection() {
-        if (!this.db || this.db.ended) {
+        try {
+            // Try to get the pool - if it doesn't exist or is ended, we'll reinitialize
+            let pool;
             try {
-                await connection_1.Database.initialize();
-                this.db = connection_1.Database.getPool();
-                console.log('🔗 Reply detector database connection established');
+                pool = connection_1.Database.getPool();
+                // Check if the pool is ended - if so, we need to reinitialize Database
+                if (pool.ended) {
+                    console.log('⚠️  Database pool was ended, reinitializing...');
+                    // Reset the Database pool so it can be reinitialized
+                    connection_1.Database.pool = null;
+                    await connection_1.Database.initialize();
+                    pool = connection_1.Database.getPool();
+                    console.log('🔗 Reply detector database connection re-established');
+                }
             }
             catch (error) {
-                console.error('❌ Failed to initialize database connection for reply detector:', error);
-                throw new Error('Database connection failed');
+                // Pool not initialized, initialize it
+                await connection_1.Database.initialize();
+                pool = connection_1.Database.getPool();
+                console.log('🔗 Reply detector database connection established');
             }
+            // Update our cached reference
+            this.db = pool;
+            return this.db;
         }
-        return this.db;
+        catch (error) {
+            console.error('❌ Failed to ensure database connection for reply detector:', error);
+            throw new Error('Database connection failed');
+        }
     }
     async checkAllAccountsForReplies() {
         try {
             const db = await this.ensureDatabaseConnection();
             const accounts = await this.getActiveEmailAccounts(db);
             const allReplies = [];
-            console.log(`🔍 Checking ${accounts.length} email accounts for replies...`);
+            // Detect new accounts by comparing with previous check
+            const currentAccountIds = new Set(accounts.map(acc => acc.id));
+            const newAccountIds = [...currentAccountIds].filter(id => !this.previousAccountIds.has(id));
+            const removedAccountIds = [...this.previousAccountIds].filter(id => !currentAccountIds.has(id));
+            if (newAccountIds.length > 0) {
+                const newAccounts = accounts.filter(acc => newAccountIds.includes(acc.id));
+                console.log(`🆕 Detected ${newAccountIds.length} new email account(s) for reply detection:`);
+                newAccounts.forEach(account => {
+                    console.log(`   ✅ ${account.username} (ID: ${account.id}) - ${account.imap_host}:${account.imap_port}`);
+                });
+            }
+            if (removedAccountIds.length > 0) {
+                console.log(`🗑️  ${removedAccountIds.length} email account(s) removed from reply detection (IDs: ${removedAccountIds.join(', ')})`);
+            }
+            // Update tracked account IDs for next check
+            this.previousAccountIds = currentAccountIds;
+            console.log(`🔍 Checking ${accounts.length} email account(s) for replies...`);
             for (const account of accounts) {
                 try {
                     console.log(`📧 Checking account: ${account.username}`);
@@ -51,17 +85,106 @@ class ImapReplyDetector {
         }
     }
     async getActiveEmailAccounts(db) {
-        const result = await db.query(`
-      SELECT id, username, imap_host, imap_port, imap_secure, 
-             COALESCE(imap_username, username) as imap_username, 
-             COALESCE(imap_password, encrypted_password) as imap_password
-      FROM email_accounts 
-      WHERE imap_host IS NOT NULL 
-      AND username IS NOT NULL 
-      AND (imap_password IS NOT NULL OR encrypted_password IS NOT NULL)
-      AND imap_password != 'YOUR_APP_PASSWORD_HERE'
-    `);
-        return result.rows;
+        try {
+            // First, let's check what accounts exist and why they might not be matching
+            const debugQuery = await db.query(`
+        SELECT id, username, imap_host, imap_port, is_active,
+               encrypted_password IS NOT NULL as has_encrypted_password
+        FROM email_accounts 
+        WHERE is_active = true
+      `);
+            if (debugQuery.rows.length === 0) {
+                console.log('⚠️  No active email accounts found in database');
+                return [];
+            }
+            console.log(`📊 Found ${debugQuery.rows.length} active email account(s) in database:`);
+            debugQuery.rows.forEach(acc => {
+                console.log(`   • ${acc.username} (ID: ${acc.id}):`);
+                console.log(`     - IMAP Host: ${acc.imap_host || 'NULL'}`);
+                console.log(`     - IMAP Port: ${acc.imap_port || 'NULL'}`);
+                console.log(`     - Has Password: ${acc.has_encrypted_password ? 'YES' : 'NO'}`);
+                console.log(`     - Ready for Reply Detection: ${(acc.imap_host && acc.has_encrypted_password) ? 'YES' : 'NO'}`);
+            });
+            // Try to use imap_password if column exists, otherwise fall back to encrypted_password
+            // First check if optional columns exist
+            let hasImapPassword = false;
+            let hasImapUsername = false;
+            let hasImapSecure = false;
+            try {
+                const columnCheck = await db.query(`
+          SELECT column_name 
+          FROM information_schema.columns 
+          WHERE table_name = 'email_accounts' 
+          AND column_name IN ('imap_password', 'imap_username', 'imap_secure')
+        `);
+                hasImapPassword = columnCheck.rows.some(r => r.column_name === 'imap_password');
+                hasImapUsername = columnCheck.rows.some(r => r.column_name === 'imap_username');
+                hasImapSecure = columnCheck.rows.some(r => r.column_name === 'imap_secure');
+            }
+            catch (e) {
+                // If we can't check columns, assume they don't exist
+                console.log('ℹ️  Could not check for optional IMAP columns, using defaults');
+            }
+            // Build the query - use imap_password if available, otherwise use encrypted_password
+            let query = `
+        SELECT id, username, imap_host, imap_port, 
+               ${hasImapSecure ? 'COALESCE(imap_secure, true)' : 'true'} as imap_secure,
+               ${hasImapUsername ? 'COALESCE(imap_username, username)' : 'username'} as imap_username, 
+               `;
+            if (hasImapPassword) {
+                query += `COALESCE(
+          CASE WHEN imap_password IS NOT NULL AND imap_password != 'YOUR_APP_PASSWORD_HERE' THEN imap_password ELSE NULL END,
+          encrypted_password
+        ) as imap_password`;
+            }
+            else {
+                query += `encrypted_password as imap_password`;
+            }
+            query += `
+        FROM email_accounts 
+        WHERE imap_host IS NOT NULL 
+        AND username IS NOT NULL 
+        AND encrypted_password IS NOT NULL
+        AND is_active = true
+      `;
+            if (hasImapPassword) {
+                query = query.replace('AND encrypted_password IS NOT NULL', `AND (
+          (imap_password IS NOT NULL AND imap_password != 'YOUR_APP_PASSWORD_HERE') 
+          OR encrypted_password IS NOT NULL
+        )`);
+            }
+            const result = await db.query(query);
+            if (result.rows.length === 0) {
+                console.log('⚠️  No email accounts match the reply detection criteria (need IMAP host + password)');
+            }
+            else {
+                console.log(`✅ Found ${result.rows.length} email account(s) ready for reply detection`);
+            }
+            return result.rows;
+        }
+        catch (error) {
+            console.error('❌ Error querying email accounts:', error);
+            // Fallback to simplest query that should always work
+            try {
+                const fallbackResult = await db.query(`
+          SELECT id, username, imap_host, imap_port, 
+                 true as imap_secure,
+                 username as imap_username, 
+                 encrypted_password as imap_password
+          FROM email_accounts 
+          WHERE imap_host IS NOT NULL 
+          AND username IS NOT NULL 
+          AND encrypted_password IS NOT NULL
+          AND is_active = true
+        `);
+                console.log(`✅ Using fallback query - found ${fallbackResult.rows.length} account(s)`);
+                return fallbackResult.rows;
+            }
+            catch (fallbackError) {
+                console.error('❌ Fallback query also failed:', fallbackError);
+                return [];
+            }
+        }
     }
     async checkAccountForReplies(account) {
         return new Promise((resolve, reject) => {
@@ -154,7 +277,15 @@ class ImapReplyDetector {
         if (!originalMessageId)
             return null;
         // Find the original message in our database
-        const db = await this.ensureDatabaseConnection();
+        // Ensure we have a valid connection before querying
+        let db;
+        try {
+            db = await this.ensureDatabaseConnection();
+        }
+        catch (error) {
+            console.error('❌ Failed to get database connection in processEmailForReplies:', error);
+            return null;
+        }
         const originalMessage = await this.findOriginalMessage(originalMessageId, account.id, db);
         if (!originalMessage)
             return null;

@@ -15,5 +15,6 @@ router.get('/:id', emailAccountController_1.EmailAccountController.getEmailAccou
 router.put('/:id', emailAccountController_1.EmailAccountController.updateEmailAccount);
 router.delete('/:id', emailAccountController_1.EmailAccountController.deleteEmailAccount);
 router.patch('/:id/toggle-status', emailAccountController_1.EmailAccountController.toggleEmailAccountStatus);
+router.post('/:id/verify-credentials', emailAccountController_1.EmailAccountController.verifyCredentials);
 exports.default = router;
 //# sourceMappingURL=emailAccounts.js.map

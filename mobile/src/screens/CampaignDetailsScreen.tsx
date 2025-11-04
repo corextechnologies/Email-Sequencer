@@ -1227,18 +1227,55 @@ const handleMatchPersonas = async (contactId: number) => {
 						<View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
 							{/* Validate - always available */}
 							<TouchableOpacity onPress={async () => {
-								const v = await campaignsService.validateCampaign(id);
-								if (v.valid) {
-									setValidMsg('Ready to launch! All requirements met.');
-								} else {
-									const reasons = (v.reasons || []).map(r => {
-										if (r === 'NO_FROM_ACCOUNT') return 'Email account not selected';
-										if (r === 'NO_CONTACTS') return 'No contacts added';
-										if (r === 'MISSING_EMAIL_CONTENT') return 'Contacts need sequences';
-										if (r === 'NOT_FOUND') return 'Campaign not found';
-										return r;
-									});
-									setValidMsg(`Missing: ${reasons.join(', ')}`);
+								try {
+									const v = await campaignsService.validateCampaign(id);
+									if (v.valid) {
+										setValidMsg('Ready to launch! All requirements met.');
+										Alert.alert('Validation Successful', 'All requirements are met. You can now launch the campaign.');
+									} else {
+										const reasons = (v.reasons || []).map(r => {
+											if (r === 'NO_FROM_ACCOUNT') return 'Email account not selected';
+											if (r === 'EMAIL_ACCOUNT_NOT_FOUND') return 'Email account not found';
+											if (r === 'EMAIL_ACCOUNT_INACTIVE') return 'Email account is inactive';
+											if (r === 'INVALID_EMAIL_CREDENTIALS') return 'Email credentials are invalid';
+											if (r === 'NO_CONTACTS') return 'No contacts added';
+											if (r === 'MISSING_EMAIL_CONTENT') return 'Contacts need sequences';
+											if (r === 'NOT_FOUND') return 'Campaign not found';
+											return r;
+										});
+										setValidMsg(`Validation failed: ${reasons.join(', ')}`);
+										
+										// Show detailed alert for credential errors
+										if (v.reasons?.includes('INVALID_EMAIL_CREDENTIALS')) {
+											Alert.alert(
+												'Email Credentials Invalid',
+												'Your email account credentials are not working. Please update your email account settings before launching the campaign.\n\nCommon issues:\n• Password changed\n• 2FA settings changed\n• Account locked or suspended\n• SMTP server settings incorrect',
+												[
+													{ text: 'OK', style: 'default' },
+													{ text: 'Update Email Account', style: 'default', onPress: () => {
+														// Navigate to email accounts screen if needed
+														nav.navigate('EmailAccounts');
+													}}
+												]
+											);
+										} else if (v.reasons?.includes('EMAIL_ACCOUNT_INACTIVE')) {
+											Alert.alert(
+												'Email Account Inactive',
+												'Please activate your email account in the Email Accounts screen before launching the campaign.',
+												[
+													{ text: 'OK', style: 'default' },
+													{ text: 'Go to Email Accounts', style: 'default', onPress: () => {
+														nav.navigate('EmailAccounts');
+													}}
+												]
+											);
+										} else {
+											Alert.alert('Validation Failed', `Please fix the following issues:\n\n${reasons.join('\n')}`);
+										}
+									}
+								} catch (e: any) {
+									setValidMsg(`Validation error: ${e?.message}`);
+									Alert.alert('Validation Error', e?.message || 'Failed to validate campaign');
 								}
 							}} style={{ backgroundColor: '#3b82f6', padding: 12, borderRadius: 8, minWidth: 110, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
 								<Ionicons name="checkmark-done-outline" size={16} color="#fff" />
@@ -1252,7 +1289,32 @@ const handleMatchPersonas = async (contactId: number) => {
 									// Validate first
 									const v = await campaignsService.validateCampaign(id);
 									if (!v.valid) {
-										Alert.alert('Cannot Launch', 'Please fix validation errors first. Check "Review Contacts" tab to ensure sequences are saved.');
+										// Check for credential errors specifically
+										if (v.reasons?.includes('INVALID_EMAIL_CREDENTIALS')) {
+											Alert.alert(
+												'Email Credentials Invalid',
+												'Your email account credentials are not working. Please update your email account settings before launching the campaign.\n\nCommon issues:\n• Password changed\n• 2FA settings changed\n• Account locked or suspended\n• SMTP server settings incorrect',
+												[
+													{ text: 'OK', style: 'default' },
+													{ text: 'Update Email Account', style: 'default', onPress: () => {
+														nav.navigate('EmailAccounts');
+													}}
+												]
+											);
+										} else if (v.reasons?.includes('EMAIL_ACCOUNT_INACTIVE')) {
+											Alert.alert(
+												'Email Account Inactive',
+												'Please activate your email account in the Email Accounts screen before launching the campaign.',
+												[
+													{ text: 'OK', style: 'default' },
+													{ text: 'Go to Email Accounts', style: 'default', onPress: () => {
+														nav.navigate('EmailAccounts');
+													}}
+												]
+											);
+										} else {
+											Alert.alert('Cannot Launch', 'Please fix validation errors first. Check "Review Contacts" tab to ensure sequences are saved.');
+										}
 										return;
 									}
 									
@@ -1264,7 +1326,23 @@ const handleMatchPersonas = async (contactId: number) => {
 									]);
 								} catch (e: any) { 
 									setValidMsg(`❌ Launch failed: ${e?.message}`);
-									Alert.alert('Launch Failed', e?.message || 'Failed to launch campaign');
+									
+									// Check if error is related to credentials
+									const errorMessage = e?.message || '';
+									if (errorMessage.includes('INVALID_EMAIL_CREDENTIALS') || errorMessage.includes('credential')) {
+										Alert.alert(
+											'Email Credentials Invalid',
+											'Your email account credentials are not working. Please update your email account settings before launching the campaign.\n\nCommon issues:\n• Password changed\n• 2FA settings changed\n• Account locked or suspended\n• SMTP server settings incorrect',
+											[
+												{ text: 'OK', style: 'default' },
+												{ text: 'Update Email Account', style: 'default', onPress: () => {
+													nav.navigate('EmailAccounts');
+												}}
+											]
+										);
+									} else {
+										Alert.alert('Launch Failed', errorMessage || 'Failed to launch campaign');
+									}
 								}
 								}} style={{ backgroundColor: '#22c55e', padding: 12, borderRadius: 8, minWidth: 110, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
 									<Ionicons name="rocket-outline" size={16} color="#fff" />

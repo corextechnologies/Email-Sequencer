@@ -38,7 +38,14 @@ export function createCampaignRoutes(db: Pool): Router {
 				res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: e.message } });
 				return;
 			}
-			res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: 'Failed to create campaign' } });
+			// Handle credential validation errors
+			if (e?.message?.includes('INVALID_EMAIL_CREDENTIALS') || 
+			    e?.message?.includes('EMAIL_ACCOUNT_INACTIVE') || 
+			    e?.message?.includes('EMAIL_ACCOUNT_NOT_FOUND')) {
+				res.status(400).json({ success: false, error: { code: 'EMAIL_ACCOUNT_ERROR', message: e.message } });
+				return;
+			}
+			res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: e?.message || 'Failed to create campaign' } });
 		}
 	});
 

@@ -3,6 +3,7 @@ import { Campaign } from '../types';
 export declare class CampaignService {
     private repo;
     private stateMachine;
+    private db;
     constructor(db: Pool);
     create(userId: number, input: unknown): Promise<Campaign>;
     list(userId: number): Promise<Campaign[]>;

@@ -33,6 +33,46 @@ const EmailAccountsScreen: React.FC<Props> = ({ navigation }) => {
     try {
       const accounts = await ApiService.getEmailAccounts();
       setEmailAccounts(accounts);
+      
+      // Validate all active accounts and automatically deactivate invalid ones
+      const activeAccounts = accounts.filter(account => account.is_active);
+      if (activeAccounts.length > 0) {
+        console.log(`🔐 Validating ${activeAccounts.length} active email account(s)...`);
+        const invalidAccounts: string[] = [];
+        
+        // Validate each active account
+        for (const account of activeAccounts) {
+          try {
+            const verification = await ApiService.verifyEmailAccountCredentials(account.id);
+            
+            if (!verification.valid) {
+              console.log(`❌ Account ${account.username} has invalid credentials - automatically deactivated`);
+              invalidAccounts.push(account.username);
+              
+              // Update the account in the list to reflect deactivation
+              setEmailAccounts(prevAccounts =>
+                prevAccounts.map(acc =>
+                  acc.id === account.id ? { ...acc, is_active: false } : acc
+                )
+              );
+            } else {
+              console.log(`✅ Account ${account.username} credentials are valid`);
+            }
+          } catch (error: any) {
+            console.error(`Error verifying account ${account.username}:`, error);
+            // Continue with other accounts even if one fails
+          }
+        }
+        
+        // Show alert if any accounts were deactivated
+        if (invalidAccounts.length > 0) {
+          Alert.alert(
+            'Invalid Credentials Detected',
+            `${invalidAccounts.length} email account(s) had invalid credentials and have been automatically deactivated:\n\n${invalidAccounts.join('\n')}\n\nPlease update your email account settings to reactivate them.`,
+            [{ text: 'OK' }]
+          );
+        }
+      }
     } catch (error: any) {
       Alert.alert('Error', 'Failed to load email accounts');
       console.error('Load email accounts error:', error);
@@ -49,7 +89,14 @@ const EmailAccountsScreen: React.FC<Props> = ({ navigation }) => {
 
   const toggleAccountStatus = async (accountId: number, currentStatus: boolean) => {
     try {
+      // If we're activating (going from inactive to active), show a loading message
+      if (!currentStatus) {
+        console.log(`🔐 Activating account ${accountId} - validating credentials...`);
+      }
+      
       await ApiService.toggleEmailAccountStatus(accountId);
+      
+      // Update the account in the list
       setEmailAccounts(accounts =>
         accounts.map(account =>
           account.id === accountId
@@ -57,9 +104,33 @@ const EmailAccountsScreen: React.FC<Props> = ({ navigation }) => {
             : account
         )
       );
+      
+      // Show success message if activating
+      if (!currentStatus) {
+        Alert.alert('Account Activated', 'Email account has been activated successfully.');
+      }
     } catch (error: any) {
-      Alert.alert('Error', 'Failed to update account status');
       console.error('Toggle account status error:', error);
+      
+      // Extract error message from response
+      const errorMessage = error?.response?.data?.error?.message || error?.message || 'Failed to update account status';
+      
+      // Check if error is related to credentials
+      if (errorMessage.includes('INVALID_EMAIL_CREDENTIALS')) {
+        Alert.alert(
+          'Invalid Credentials',
+          'Your email account credentials are not working. Please update your email account settings before activating.\n\nCommon issues:\n• Password changed\n• 2FA settings changed\n• Account locked or suspended\n• SMTP server settings incorrect',
+          [
+            { text: 'OK', style: 'default' },
+            { text: 'Update Account', style: 'default', onPress: () => {
+              // Navigate to edit account if needed
+              // For now, just show the alert
+            }}
+          ]
+        );
+      } else {
+        Alert.alert('Error', errorMessage);
+      }
     }
   };
 

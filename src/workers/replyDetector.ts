@@ -1,7 +1,7 @@
 import { ImapReplyDetector } from '../services/imapReplyDetector';
 import { ReplyProcessor } from '../services/replyProcessor';
 
-const REPLY_CHECK_INTERVAL = 2 * 60 * 1000; // 5 minutes
+const REPLY_CHECK_INTERVAL = 30 * 1000; // 30 seconds
 const MAX_CONSECUTIVE_ERRORS = 3;
 const ERROR_RECOVERY_DELAY = 30 * 1000; // 30 seconds
 
@@ -61,7 +61,7 @@ export async function startReplyDetector(): Promise<void> {
   // Run immediately
   await checkForReplies();
 
-  // Then run every 5 minutes
+  // Then run every 30 seconds
   const intervalId = setInterval(() => {
     if (isRunning) {
       checkForReplies();

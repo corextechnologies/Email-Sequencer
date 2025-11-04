@@ -3,7 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.startReplyDetector = startReplyDetector;
 const imapReplyDetector_1 = require("../services/imapReplyDetector");
 const replyProcessor_1 = require("../services/replyProcessor");
-const REPLY_CHECK_INTERVAL = 2 * 60 * 1000; // 5 minutes
+const REPLY_CHECK_INTERVAL = 30 * 1000; // 30 seconds
 const MAX_CONSECUTIVE_ERRORS = 3;
 const ERROR_RECOVERY_DELAY = 30 * 1000; // 30 seconds
 async function startReplyDetector() {
@@ -52,7 +52,7 @@ async function startReplyDetector() {
     process.on('SIGTERM', shutdown);
     // Run immediately
     await checkForReplies();
-    // Then run every 5 minutes
+    // Then run every 30 seconds
     const intervalId = setInterval(() => {
         if (isRunning) {
             checkForReplies();

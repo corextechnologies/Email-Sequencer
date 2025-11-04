@@ -14,6 +14,7 @@ router.get('/:id', EmailAccountController.getEmailAccount);
 router.put('/:id', EmailAccountController.updateEmailAccount);
 router.delete('/:id', EmailAccountController.deleteEmailAccount);
 router.patch('/:id/toggle-status', EmailAccountController.toggleEmailAccountStatus);
+router.post('/:id/verify-credentials', EmailAccountController.verifyCredentials);
 
 export { router as emailAccountRoutes };
 export default router;

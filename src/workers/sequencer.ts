@@ -467,5 +467,3 @@ run().catch((e) => {
   console.error('Worker start failed', e);
   process.exit(1);
 });
-
-

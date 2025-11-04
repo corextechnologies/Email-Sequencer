@@ -296,14 +296,8 @@ const BusinessQuestionnaireStep6Screen: React.FC<Props> = ({ navigation }) => {
                     onPress={generatePersonas}
                     disabled={!isButtonEnabled || isGenerating}
                 >
-                    {isGenerating ? (
+                    {isGenerating && (
                         <ActivityIndicator size="small" color={COLORS.text.white} style={{ marginRight: 8 }} />
-                    ) : (
-                        <View style={styles.iconWrapper}>
-                            <Ionicons name="star" size={16} color={COLORS.text.white} />
-                            <Ionicons name="star" size={14} color={COLORS.text.white} />
-                            <Ionicons name="star" size={12} color={COLORS.text.white} />
-                        </View>
                     )}
                     <Text style={styles.generateButtonText}>
                         {isGenerating ? 'Generating Personas...' : 'Generate customer Personas with AI'}
@@ -375,7 +369,6 @@ const styles = StyleSheet.create({
         marginTop: 20,
     },
     generateButtonText: { color: COLORS.text.white, fontSize: 16, fontWeight: '700' },
-    iconWrapper: { flexDirection: 'row', gap: 4, marginRight: 6 },
     cardInfo: { backgroundColor: '#ede9fe', borderRadius: 14, padding: 16, marginBottom: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
     cardInfoLeft: { flexDirection: 'row', alignItems: 'center', flex: 1, gap: 10 },
     cardInfoIconWrap: { width: 28, height: 28, borderRadius: 14, backgroundColor: '#ede9fe', alignItems: 'center', justifyContent: 'center' },

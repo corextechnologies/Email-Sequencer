@@ -113,9 +113,31 @@ export class CampaignsService {
 			}
 			console.log('✅ Campaign created:', parsed.data.id);
 			return parsed.data;
-		} catch (error) {
+		} catch (error: any) {
 			console.error('❌ Error creating campaign:', error);
-			throw error;
+			console.error('❌ Error response:', error.response);
+			console.error('❌ Error response data:', error.response?.data);
+			console.error('❌ Error response status:', error.response?.status);
+			
+			// Extract error message from Axios response
+			// Check multiple possible locations for the error message
+			let errorMessage = 'Failed to create campaign';
+			
+			if (error.response?.data?.error?.message) {
+				errorMessage = error.response.data.error.message;
+				console.log('✅ Found error message in response.data.error.message:', errorMessage);
+			} else if (error.response?.data?.message) {
+				errorMessage = error.response.data.message;
+				console.log('✅ Found error message in response.data.message:', errorMessage);
+			} else if (error.message) {
+				errorMessage = error.message;
+				console.log('✅ Using error.message:', errorMessage);
+			}
+			
+			console.error('❌ Final extracted error message:', errorMessage);
+			
+			// Throw error with the message from server response
+			throw new Error(errorMessage);
 		}
 	}
 
@@ -245,7 +267,25 @@ export class CampaignsService {
 				throw new Error('Campaign cannot be launched from its current status. Please reset it to draft first.');
 			}
 			if (error.response?.status === 400 && error.response?.data?.error?.code === 'VALIDATION_FAILED') {
-				throw new Error('Campaign validation failed. Please check that all required fields are filled.');
+				// Parse validation failure reasons
+				const errorMessage = error.response?.data?.error?.message || '';
+				const reasons = errorMessage.split(':')[1]?.split(',') || [];
+				
+				if (reasons.includes('INVALID_EMAIL_CREDENTIALS')) {
+					throw new Error('INVALID_EMAIL_CREDENTIALS: Your email account credentials are not working. Please update your email account settings.');
+				}
+				if (reasons.includes('EMAIL_ACCOUNT_INACTIVE')) {
+					throw new Error('EMAIL_ACCOUNT_INACTIVE: Please activate your email account before launching the campaign.');
+				}
+				if (reasons.includes('EMAIL_ACCOUNT_NOT_FOUND')) {
+					throw new Error('EMAIL_ACCOUNT_NOT_FOUND: The selected email account was not found. Please select a different email account.');
+				}
+				if (reasons.includes('NO_FROM_ACCOUNT')) {
+					throw new Error('NO_FROM_ACCOUNT: Please select an email account for this campaign.');
+				}
+				
+				// Generic validation error
+				throw new Error('Campaign validation failed. Please check that all required fields are filled and email account credentials are valid.');
 			}
 			throw error;
 		}

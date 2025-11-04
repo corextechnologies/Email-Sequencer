@@ -29,6 +29,7 @@ import EmailAccountsScreen from '../screens/EmailAccountsScreen';
 import AddEmailAccountScreen from '../screens/AddEmailAccountScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import ProfileScreen from '../screens/ProfileScreen';
+import LlmApiKeysScreen from '../screens/LlmApiKeysScreen';
 import CampaignsNavigator from './CampaignsNavigator';
 
 // ------------------ Types ------------------
@@ -63,6 +64,7 @@ export type EmailAccountsStackParamList = {
 export type SettingsStackParamList = {
   SettingsList: undefined;
   Profile: undefined;
+  LlmApiKeys: undefined;
 };
 
 export type MainTabParamList = {
@@ -190,7 +192,7 @@ function EmailAccountsStackNavigator() {
       <EmailAccountsStack.Screen
         name="AddEmailAccount"
         component={AddEmailAccountScreen}
-        options={{ headerShown: true, title: 'Add Email Account' }}
+        options={{ headerShown: false }}
       />
     </EmailAccountsStack.Navigator>
   );
@@ -209,6 +211,11 @@ function SettingsStackNavigator() {
         name="Profile"
         component={ProfileScreen}
         options={{ headerShown: true, title: 'Profile' }}
+      />
+      <SettingsStack.Screen
+        name="LlmApiKeys"
+        component={LlmApiKeysScreen}
+        options={{ headerShown: false }}
       />
     </SettingsStack.Navigator>
   );

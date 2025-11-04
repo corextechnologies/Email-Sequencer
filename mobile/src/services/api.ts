@@ -64,7 +64,8 @@ class ApiService {
           method: error.config?.method,
           status: error.response?.status,
           message: error.message,
-          code: error.code
+          code: error.code,
+          responseData: error.response?.data
         });
 
         if (error.response?.status === 401) {
@@ -140,6 +141,11 @@ class ApiService {
 
   async toggleEmailAccountStatus(id: number): Promise<EmailAccount> {
     const response = await this.api.patch<ApiResponse<EmailAccount>>(`/email-accounts/${id}/toggle-status`);
+    return response.data.data;
+  }
+
+  async verifyEmailAccountCredentials(id: number): Promise<{ valid: boolean; error?: string; account: EmailAccount }> {
+    const response = await this.api.post<ApiResponse<{ valid: boolean; error?: string; account: EmailAccount }>>(`/email-accounts/${id}/verify-credentials`);
     return response.data.data;
   }
 

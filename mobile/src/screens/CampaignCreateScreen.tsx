@@ -37,10 +37,11 @@ export default function CampaignCreateScreen() {
 		}
 	}, [contactSearchQuery]);
 
-	// Reload contacts when screen comes into focus (e.g., returning from import)
+	// Reload contacts and email accounts when screen comes into focus (e.g., returning from import or adding email account)
 	useFocusEffect(
 		React.useCallback(() => {
 			loadContacts();
+			loadEmailAccounts();
 		}, [])
 	);
 
@@ -152,7 +153,64 @@ export default function CampaignCreateScreen() {
 			// Navigate to campaign details to continue setup
 			nav.replace('CampaignDetails', { id: created.id });
 		} catch (e: any) {
-			Alert.alert('Error', e?.message || 'Failed to create campaign');
+			// Try to extract error message from multiple possible locations
+			let errorMessage = '';
+			
+			// Check Axios error response structure first
+			if (e?.response?.data?.error?.message) {
+				errorMessage = e.response.data.error.message;
+				console.log('✅ Found error in response.data.error.message:', errorMessage);
+			} else if (e?.response?.data?.message) {
+				errorMessage = e.response.data.message;
+				console.log('✅ Found error in response.data.message:', errorMessage);
+			} else if (e?.message) {
+				errorMessage = e.message;
+				console.log('✅ Using error.message:', errorMessage);
+			} else {
+				errorMessage = 'Failed to create campaign';
+				console.log('⚠️ No error message found, using default');
+			}
+			
+			console.log('🔍 Final Campaign creation error message:', errorMessage);
+			console.log('🔍 Full error object:', JSON.stringify(e, null, 2));
+			
+			// Check if error is related to credentials
+			if (errorMessage.includes('INVALID_EMAIL_CREDENTIALS')) {
+				Alert.alert(
+					'Email Credentials Invalid',
+					'Your email account credentials are not working. Please update your email account settings before creating the campaign.\n\nCommon issues:\n• Password changed\n• 2FA settings changed\n• Account locked or suspended\n• SMTP server settings incorrect',
+					[
+						{ text: 'OK', style: 'default' },
+						{ text: 'Update Email Account', style: 'default', onPress: () => {
+							nav.navigate('EmailAccounts');
+						}}
+					]
+				);
+			} else if (errorMessage.includes('EMAIL_ACCOUNT_INACTIVE')) {
+				Alert.alert(
+					'Email Account Inactive',
+					'Please activate your email account in the Email Accounts screen before creating a campaign.',
+					[
+						{ text: 'OK', style: 'default' },
+						{ text: 'Go to Email Accounts', style: 'default', onPress: () => {
+							nav.navigate('EmailAccounts');
+						}}
+					]
+				);
+			} else if (errorMessage.includes('EMAIL_ACCOUNT_NOT_FOUND')) {
+				Alert.alert(
+					'Email Account Not Found',
+					'The selected email account was not found. Please select a different email account.',
+					[
+						{ text: 'OK', style: 'default' },
+						{ text: 'Go to Email Accounts', style: 'default', onPress: () => {
+							nav.navigate('EmailAccounts');
+						}}
+					]
+				);
+			} else {
+				Alert.alert('Error', errorMessage || 'Failed to create campaign');
+			}
 		} finally {
 			setLoading(false);
 		}

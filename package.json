@@ -23,6 +23,7 @@
     "worker": "node dist/workers/sequencer.js",
     "worker:dev": "ts-node src/workers/sequencer.ts",
     "worker:prod": "pm2 start ecosystem.config.js --only email-sequencer-worker --env production",
+    "test:reply-detection": "node scripts/trigger-reply-detection.js",
     "postinstall": "npm run build",
     "prestart": "npm run build"
   },

@@ -7,5 +7,6 @@ export declare class EmailAccountController {
     static updateEmailAccount(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void>;
     static deleteEmailAccount(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void>;
     static toggleEmailAccountStatus(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void>;
+    static verifyCredentials(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void>;
 }
 //# sourceMappingURL=emailAccountController.d.ts.map

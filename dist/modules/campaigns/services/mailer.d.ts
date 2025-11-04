@@ -12,6 +12,10 @@ export declare class MailerService {
     private db;
     constructor(db: Pool);
     createTransport(smtp_account_id: number): Promise<nodemailer.Transporter<import("nodemailer/lib/smtp-transport").SentMessageInfo, import("nodemailer/lib/smtp-transport").Options>>;
+    verifyCredentials(smtp_account_id: number): Promise<{
+        valid: boolean;
+        error?: string;
+    }>;
     send(input: SendInput): Promise<{
         messageId: string;
     }>;

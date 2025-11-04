@@ -26,6 +26,22 @@ export class MailerService {
 		});
 	}
 
+	async verifyCredentials(smtp_account_id: number): Promise<{ valid: boolean; error?: string }> {
+		try {
+			const transporter = await this.createTransport(smtp_account_id);
+			// Verify SMTP connection and credentials
+			await transporter.verify();
+			return { valid: true };
+		} catch (error: any) {
+			const errorMessage = error.message || 'Failed to verify SMTP credentials';
+			console.error(`❌ SMTP credential verification failed for account ${smtp_account_id}:`, errorMessage);
+			return { 
+				valid: false, 
+				error: errorMessage
+			};
+		}
+	}
+
 	async send(input: SendInput): Promise<{ messageId: string }> {
 		const transporter = await this.createTransport(input.smtp_account_id);
 		const info = await transporter.sendMail({

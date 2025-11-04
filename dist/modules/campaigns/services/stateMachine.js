@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CampaignStateMachine = void 0;
 const queue_1 = require("./queue");
+const mailer_1 = require("./mailer");
 class CampaignStateMachine {
     constructor(db) {
         this.db = db;
@@ -37,6 +38,42 @@ class CampaignStateMachine {
             if (!campaign.from_email_account_id) {
                 console.log(`❌ Missing from_email_account_id`);
                 reasons.push('NO_FROM_ACCOUNT');
+            }
+            else {
+                // Verify email account exists, is active, and credentials are valid
+                const accountRes = await this.db.query(`SELECT id, provider, username, smtp_host, smtp_port, encrypted_password, is_active 
+					 FROM email_accounts 
+					 WHERE id = $1 AND user_id = $2`, [campaign.from_email_account_id, userId]);
+                if (accountRes.rows.length === 0) {
+                    console.log(`❌ Email account ${campaign.from_email_account_id} not found for user ${userId}`);
+                    reasons.push('EMAIL_ACCOUNT_NOT_FOUND');
+                }
+                else {
+                    const account = accountRes.rows[0];
+                    if (!account.is_active) {
+                        console.log(`❌ Email account ${account.username} (ID: ${account.id}) is not active`);
+                        reasons.push('EMAIL_ACCOUNT_INACTIVE');
+                    }
+                    else {
+                        // Verify SMTP credentials are working
+                        console.log(`🔐 Verifying SMTP credentials for email account ${account.username} (${account.provider})...`);
+                        try {
+                            const mailer = new mailer_1.MailerService(this.db);
+                            const verification = await mailer.verifyCredentials(account.id);
+                            if (!verification.valid) {
+                                console.error(`❌ Email credentials invalid for ${account.username}: ${verification.error}`);
+                                reasons.push('INVALID_EMAIL_CREDENTIALS');
+                            }
+                            else {
+                                console.log(`✅ Email credentials verified successfully for ${account.username}`);
+                            }
+                        }
+                        catch (error) {
+                            console.error(`❌ Error verifying email credentials:`, error);
+                            reasons.push('INVALID_EMAIL_CREDENTIALS');
+                        }
+                    }
+                }
             }
             // Check if contacts have sequences or campaign has template
             const sequencesCount = await this.db.query(`SELECT COUNT(DISTINCT contact_id)::int AS c 
