@@ -47,7 +47,19 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
     try {
       await register(formData);
     } catch (error: any) {
-      Alert.alert('Registration Failed', error.message || 'An error occurred');
+      // Check for email already exists error (409 status code or EMAIL_ALREADY_EXISTS error code)
+      const statusCode = error.response?.status;
+      const errorCode = error.response?.data?.error?.code;
+      const errorMessage = error.response?.data?.error?.message;
+      
+      if (statusCode === 409 || errorCode === 'EMAIL_ALREADY_EXISTS' || 
+          errorMessage?.includes('email') && errorMessage?.includes('already exists')) {
+        Alert.alert('Email Already Exists', 'An account with this email address already exists. Please use a different email or try logging in.');
+      } else {
+        // Show other error messages
+        const message = errorMessage || error.message || 'An error occurred during registration';
+        Alert.alert('Registration Failed', message);
+      }
     } finally {
       setIsLoading(false);
     }

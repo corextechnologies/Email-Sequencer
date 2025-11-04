@@ -20,7 +20,7 @@ const getBaseURL = () => {
   //   return apiUrl;
   // }
   // // Fallback
-  return 'https://nate.nexivio.online/api';
+  return 'http://192.168.100.14:3007/api';
 };
 
  const BASE_URL = getBaseURL();
