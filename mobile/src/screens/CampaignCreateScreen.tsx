@@ -109,6 +109,15 @@ export default function CampaignCreateScreen() {
 		setSelectedContacts(selectedContacts.filter(c => c.id !== contactId));
 	};
 
+	// Helper function to get display name for contact
+	const getContactDisplayName = (contact: Contact): string => {
+		const name = `${contact.first_name || ''} ${contact.last_name || ''}`.trim();
+		if (name) {
+			return name;
+		}
+		return contact.email || 'Unknown Contact';
+	};
+
 	const createCampaign = async () => {
 		if (!name.trim()) {
 			Alert.alert('Error', 'Please enter a campaign name');
@@ -341,7 +350,7 @@ export default function CampaignCreateScreen() {
 							{selectedContacts.map((contact) => (
 								<View key={contact.id} style={styles.selectedContactChip}>
 									<Text style={styles.selectedContactName}>
-										{contact.first_name} {contact.last_name}
+										{getContactDisplayName(contact)}
 									</Text>
 									<TouchableOpacity 
 										onPress={() => removeSelectedContact(contact.id)}

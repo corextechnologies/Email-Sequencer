@@ -93,6 +93,12 @@ const AddContactScreen: React.FC = () => {
   };
 
   const validateForm = () => {
+    // First name is required when creating a new contact
+    if (!isEdit && !formData.first_name.trim()) {
+      Alert.alert('Validation Error', 'First name is required');
+      return false;
+    }
+
     if (!formData.email.trim()) {
       Alert.alert('Validation Error', 'Email is required');
       return false;
@@ -154,7 +160,7 @@ const AddContactScreen: React.FC = () => {
           <Text style={styles.sectionTitle}>Basic Information</Text>
           
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>First Name</Text>
+            <Text style={styles.label}>First Name {!isEdit && <Text style={styles.required}>*</Text>}</Text>
             <TextInput
               style={styles.input}
               value={formData.first_name}
@@ -374,6 +380,10 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#374151',
     marginBottom: 6,
+  },
+  required: {
+    color: '#ef4444',
+    fontSize: 14,
   },
   input: {
     backgroundColor: '#f9fafb',
