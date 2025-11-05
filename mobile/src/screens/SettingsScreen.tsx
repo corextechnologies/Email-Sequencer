@@ -9,6 +9,7 @@ import {
   Image,
   Linking,
 } from 'react-native';
+import Constants from 'expo-constants';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { COLORS } from '../constants/colors';
@@ -156,6 +157,9 @@ const SettingsScreen: React.FC<Props> = ({ navigation }) => {
         </Text>
         <Text style={styles.footerSubtext}>
           © 2025 Bobos.ai. All rights reserved.
+        </Text>
+        <Text style={styles.versionText}>
+          Version {Constants.expoConfig?.version}
         </Text>
       </View>
     </ScrollView>
@@ -426,6 +430,13 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: COLORS.text.light,
     textAlign: 'center',
+    marginBottom: 5,
+  },
+  versionText: {
+    fontSize: 12,
+    color: COLORS.text.light,
+    textAlign: 'center',
+    fontWeight: '500',
   },
 });
 

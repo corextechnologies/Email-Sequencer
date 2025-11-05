@@ -8,6 +8,7 @@ import {
   StatusBar,
   Image,
 } from 'react-native';
+import Constants from 'expo-constants';
 import { COLORS } from '../constants/colors';
 
 const { width, height } = Dimensions.get('window');
@@ -173,6 +174,7 @@ const PreloaderScreen: React.FC<PreloaderScreenProps> = ({ onFinish }) => {
         ]}
       >
         <Text style={styles.bottomTextContent}>Powered by CorexTech</Text>
+        <Text style={styles.versionText}>Version {Constants.expoConfig?.version}</Text>
       </Animated.View>
     </View>
   );
@@ -257,6 +259,12 @@ const styles = StyleSheet.create({
   },
   bottomTextContent: {
     fontSize: 14,
+    color: COLORS.text.light,
+    fontWeight: '300',
+    marginBottom: 4,
+  },
+  versionText: {
+    fontSize: 12,
     color: COLORS.text.light,
     fontWeight: '300',
   },
