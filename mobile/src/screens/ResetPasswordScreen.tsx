@@ -168,7 +168,7 @@ const ResetPasswordScreen: React.FC<Props> = ({ navigation, route }) => {
                 const numericOnly = text.replace(/\D/g, '').slice(0, 6);
                 setToken(numericOnly);
               }}
-              placeholder="Enter 6-digit code"
+              placeholder="6-digit code"
               placeholderTextColor={COLORS.text.light}
               keyboardType="number-pad"
               maxLength={6}

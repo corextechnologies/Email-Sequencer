@@ -325,7 +325,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
                   style={[styles.input, styles.otpInput]}
                   value={otpCode}
                   onChangeText={handleOtpChange}
-                  placeholder="Enter 6-digit code"
+                  placeholder="6-digit code"
                   placeholderTextColor={COLORS.text.light}
                   keyboardType="number-pad"
                   maxLength={6}
