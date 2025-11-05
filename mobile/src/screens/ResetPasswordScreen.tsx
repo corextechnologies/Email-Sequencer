@@ -9,6 +9,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Image,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import ApiService from '../services/api';
@@ -134,43 +136,64 @@ const ResetPasswordScreen: React.FC<Props> = ({ navigation, route }) => {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
     >
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
-        <View style={styles.formContainer}>
-          <Text style={styles.title}>Reset Password</Text>
-          <Text style={styles.subtitle}>
+      <ScrollView 
+        contentContainerStyle={styles.scrollContainer}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Logo/Brand Section */}
+        <View style={styles.headerSection}>
+          <Image 
+            source={require('../../assets/boboslogo.png')} 
+            style={styles.logo}
+            resizeMode="contain"
+          />
+          <Text style={styles.welcomeText}>Reset Password</Text>
+          <Text style={styles.subtitleText}>
             Enter the reset code from your email and your new password to complete the password reset.
           </Text>
+        </View>
 
+        {/* Form Container */}
+        <View style={styles.formContainer}>
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Reset Code (6 digits)</Text>
+            <View style={styles.inputLabelContainer}>
+              <Ionicons name="key-outline" size={18} color={COLORS.text.secondary} style={styles.inputIcon} />
+              <Text style={styles.label}>Reset Code (6 digits)</Text>
+            </View>
             <TextInput
-              style={styles.input}
+              style={[styles.input, styles.tokenInput]}
               value={token}
               onChangeText={(text) => {
                 // Only allow numeric input, max 6 digits
                 const numericOnly = text.replace(/\D/g, '').slice(0, 6);
                 setToken(numericOnly);
               }}
-              placeholder="Enter 6-digit code from email"
+              placeholder="Enter 6-digit code"
+              placeholderTextColor={COLORS.text.light}
               keyboardType="number-pad"
               maxLength={6}
               autoCapitalize="none"
               autoCorrect={false}
               editable={!isLoading}
+              textAlign="center"
             />
             <Text style={styles.helpText}>
-              Enter the 6-digit code from your email. Example: 123456
+              Enter the 6-digit code from your email
             </Text>
           </View>
 
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>New Password</Text>
+            <View style={styles.inputLabelContainer}>
+              <Ionicons name="lock-closed-outline" size={18} color={COLORS.text.secondary} style={styles.inputIcon} />
+              <Text style={styles.label}>New Password</Text>
+            </View>
             <View style={styles.passwordInputContainer}>
               <TextInput
                 style={styles.passwordInput}
                 value={password}
                 onChangeText={setPassword}
                 placeholder="Enter new password"
+                placeholderTextColor={COLORS.text.light}
                 secureTextEntry={!showPassword}
                 autoCapitalize="none"
                 editable={!isLoading}
@@ -189,13 +212,17 @@ const ResetPasswordScreen: React.FC<Props> = ({ navigation, route }) => {
           </View>
 
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Confirm New Password</Text>
+            <View style={styles.inputLabelContainer}>
+              <Ionicons name="lock-closed-outline" size={18} color={COLORS.text.secondary} style={styles.inputIcon} />
+              <Text style={styles.label}>Confirm New Password</Text>
+            </View>
             <View style={styles.passwordInputContainer}>
               <TextInput
                 style={styles.passwordInput}
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
                 placeholder="Confirm new password"
+                placeholderTextColor={COLORS.text.light}
                 secureTextEntry={!showConfirmPassword}
                 autoCapitalize="none"
                 editable={!isLoading}
@@ -218,17 +245,22 @@ const ResetPasswordScreen: React.FC<Props> = ({ navigation, route }) => {
             onPress={handleResetPassword}
             disabled={isLoading}
           >
-            <Text style={styles.buttonText}>
-              {isLoading ? 'Resetting...' : 'Reset Password'}
-            </Text>
+            {isLoading ? (
+              <ActivityIndicator size="small" color={COLORS.text.white} />
+            ) : (
+              <>
+                <Text style={styles.buttonText}>Reset Password</Text>
+                <Ionicons name="checkmark-circle-outline" size={20} color={COLORS.text.white} style={styles.buttonIcon} />
+              </>
+            )}
           </TouchableOpacity>
 
           <View style={styles.linksContainer}>
-            <TouchableOpacity onPress={navigateToForgotPassword}>
-              <Text style={styles.link}>Need a new token?</Text>
+            <TouchableOpacity onPress={navigateToForgotPassword} disabled={isLoading}>
+              <Text style={styles.link}>Need a new code?</Text>
             </TouchableOpacity>
             <Text style={styles.separator}> • </Text>
-            <TouchableOpacity onPress={navigateToLogin}>
+            <TouchableOpacity onPress={navigateToLogin} disabled={isLoading}>
               <Text style={styles.link}>Back to Login</Text>
             </TouchableOpacity>
           </View>
@@ -241,95 +273,134 @@ const ResetPasswordScreen: React.FC<Props> = ({ navigation, route }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: COLORS.background.secondary,
   },
   scrollContainer: {
     flexGrow: 1,
     justifyContent: 'center',
     paddingHorizontal: 20,
+    paddingVertical: 40,
+  },
+  headerSection: {
+    alignItems: 'center',
+    marginBottom: 40,
+  },
+  logo: {
+    width: 180,
+    height: 50,
+    marginBottom: 24,
+  },
+  welcomeText: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: COLORS.text.primary,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  subtitleText: {
+    fontSize: 16,
+    color: COLORS.text.secondary,
+    textAlign: 'center',
+    lineHeight: 22,
   },
   formContainer: {
-    backgroundColor: 'white',
+    backgroundColor: COLORS.background.primary,
+    borderRadius: 20,
     padding: 24,
-    borderRadius: 12,
-    shadowColor: '#000',
+    shadowColor: COLORS.shadow.medium,
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 4,
     },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#1f2937',
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#6b7280',
-    textAlign: 'center',
-    marginBottom: 32,
-    lineHeight: 22,
+    shadowRadius: 12,
+    elevation: 5,
   },
   inputContainer: {
     marginBottom: 20,
   },
-  label: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#374151',
+  inputLabelContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 8,
+  },
+  inputIcon: {
+    marginRight: 8,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.text.primary,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
+    borderColor: COLORS.border.light,
+    borderRadius: 12,
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 14,
     fontSize: 16,
-    backgroundColor: '#f9fafb',
+    backgroundColor: COLORS.background.secondary,
+    color: COLORS.text.primary,
+  },
+  tokenInput: {
+    fontSize: 24,
+    fontWeight: '700',
+    letterSpacing: 8,
+    textAlign: 'center',
   },
   passwordInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
-    backgroundColor: '#f9fafb',
+    borderColor: COLORS.border.light,
+    borderRadius: 12,
+    backgroundColor: COLORS.background.secondary,
   },
   passwordInput: {
     flex: 1,
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 14,
     fontSize: 16,
+    color: COLORS.text.primary,
   },
   eyeIcon: {
     padding: 12,
   },
   helpText: {
     fontSize: 12,
-    color: '#6b7280',
-    marginTop: 4,
-    fontStyle: 'italic',
+    color: COLORS.text.secondary,
+    marginTop: 8,
+    textAlign: 'center',
   },
   button: {
-    backgroundColor: '#6366f1',
-    borderRadius: 8,
+    backgroundColor: COLORS.primary,
+    borderRadius: 12,
     paddingVertical: 16,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     marginTop: 8,
+    shadowColor: COLORS.primary,
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   buttonDisabled: {
-    backgroundColor: '#9ca3af',
+    backgroundColor: COLORS.button.disabled,
+    shadowOpacity: 0,
+    elevation: 0,
   },
   buttonText: {
-    color: 'white',
+    color: COLORS.text.white,
     fontSize: 16,
     fontWeight: '600',
+  },
+  buttonIcon: {
+    marginLeft: 8,
   },
   linksContainer: {
     flexDirection: 'row',
@@ -338,13 +409,13 @@ const styles = StyleSheet.create({
     marginTop: 24,
   },
   link: {
-    fontSize: 16,
-    color: '#6366f1',
+    fontSize: 14,
+    color: COLORS.primary,
     fontWeight: '600',
   },
   separator: {
-    fontSize: 16,
-    color: '#9ca3af',
+    fontSize: 14,
+    color: COLORS.text.light,
   },
 });
 

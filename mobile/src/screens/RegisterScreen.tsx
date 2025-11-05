@@ -122,9 +122,10 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   // Step 2: Verify OTP
-  const handleVerifyOTP = async () => {
-    // Clean the code (remove any spaces or non-numeric characters)
-    const cleanCode = otpCode.replace(/\D/g, '');
+  const handleVerifyOTP = async (codeToVerify?: string) => {
+    // Use provided code or clean the state code (remove any spaces or non-numeric characters)
+    const code = codeToVerify || otpCode;
+    const cleanCode = code.replace(/\D/g, '');
 
     if (cleanCode.length !== 6) {
       Alert.alert('Error', 'Please enter a valid 6-digit code');
@@ -170,8 +171,9 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
     setOtpCode(limitedText);
     
     // Auto-submit when 6 digits are entered
+    // Pass the cleaned code directly to avoid state update delay
     if (limitedText.length === 6) {
-      handleVerifyOTP();
+      handleVerifyOTP(limitedText);
     }
   };
 
@@ -339,7 +341,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
 
               <TouchableOpacity
                 style={[styles.button, isLoading && styles.buttonDisabled]}
-                onPress={handleVerifyOTP}
+                onPress={() => handleVerifyOTP()}
                 disabled={isLoading || otpCode.length !== 6}
               >
                 {isLoading ? (

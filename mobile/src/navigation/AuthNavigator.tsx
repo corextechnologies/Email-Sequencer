@@ -43,12 +43,12 @@ export default function AuthNavigator() {
       <Stack.Screen 
         name="ForgotPassword" 
         component={ForgotPasswordScreen}
-        options={{ title: 'Forgot Password' }}
+        options={{ headerShown: false }}
       />
       <Stack.Screen 
         name="ResetPassword" 
         component={ResetPasswordScreen}
-        options={{ title: 'Reset Password' }}
+        options={{ headerShown: false }}
       />
     </Stack.Navigator>
   );

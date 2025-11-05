@@ -9,8 +9,12 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Image,
+  ActivityIndicator,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import ApiService from '../services/api';
+import { COLORS } from '../constants/colors';
 
 interface Props {
   navigation: any;
@@ -70,20 +74,36 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
     >
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
-        <View style={styles.formContainer}>
-          <Text style={styles.title}>Forgot Password?</Text>
-          <Text style={styles.subtitle}>
+      <ScrollView 
+        contentContainerStyle={styles.scrollContainer}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Logo/Brand Section */}
+        <View style={styles.headerSection}>
+          <Image 
+            source={require('../../assets/boboslogo.png')} 
+            style={styles.logo}
+            resizeMode="contain"
+          />
+          <Text style={styles.welcomeText}>Forgot Password?</Text>
+          <Text style={styles.subtitleText}>
             Enter your email address and we'll send you instructions to reset your password.
           </Text>
+        </View>
 
+        {/* Form Container */}
+        <View style={styles.formContainer}>
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Email Address</Text>
+            <View style={styles.inputLabelContainer}>
+              <Ionicons name="mail-outline" size={18} color={COLORS.text.secondary} style={styles.inputIcon} />
+              <Text style={styles.label}>Email Address</Text>
+            </View>
             <TextInput
               style={styles.input}
               value={email}
               onChangeText={setEmail}
               placeholder="Enter your email"
+              placeholderTextColor={COLORS.text.light}
               keyboardType="email-address"
               autoCapitalize="none"
               autoCorrect={false}
@@ -96,16 +116,24 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
             onPress={handleForgotPassword}
             disabled={isLoading}
           >
-            <Text style={styles.buttonText}>
-              {isLoading ? 'Sending...' : 'Send Reset Link'}
-            </Text>
+            {isLoading ? (
+              <ActivityIndicator size="small" color={COLORS.text.white} />
+            ) : (
+              <>
+                <Text style={styles.buttonText}>Send Reset Code</Text>
+                <Ionicons name="mail-outline" size={20} color={COLORS.text.white} style={styles.buttonIcon} />
+              </>
+            )}
           </TouchableOpacity>
 
-          <View style={styles.backContainer}>
-            <TouchableOpacity onPress={navigateToLogin}>
-              <Text style={styles.backLink}>← Back to Login</Text>
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={navigateToLogin}
+            disabled={isLoading}
+          >
+            <Ionicons name="arrow-back" size={18} color={COLORS.text.secondary} style={styles.backButtonIcon} />
+            <Text style={styles.backButtonText}>Back to Login</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -115,81 +143,118 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: COLORS.background.secondary,
   },
   scrollContainer: {
     flexGrow: 1,
     justifyContent: 'center',
     paddingHorizontal: 20,
+    paddingVertical: 40,
+  },
+  headerSection: {
+    alignItems: 'center',
+    marginBottom: 40,
+  },
+  logo: {
+    width: 180,
+    height: 50,
+    marginBottom: 24,
+  },
+  welcomeText: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: COLORS.text.primary,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  subtitleText: {
+    fontSize: 16,
+    color: COLORS.text.secondary,
+    textAlign: 'center',
+    lineHeight: 22,
   },
   formContainer: {
-    backgroundColor: 'white',
+    backgroundColor: COLORS.background.primary,
+    borderRadius: 20,
     padding: 24,
-    borderRadius: 12,
-    shadowColor: '#000',
+    shadowColor: COLORS.shadow.medium,
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 4,
     },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#1f2937',
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#6b7280',
-    textAlign: 'center',
-    marginBottom: 32,
-    lineHeight: 22,
+    shadowRadius: 12,
+    elevation: 5,
   },
   inputContainer: {
     marginBottom: 20,
   },
-  label: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#374151',
+  inputLabelContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 8,
+  },
+  inputIcon: {
+    marginRight: 8,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.text.primary,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
+    borderColor: COLORS.border.light,
+    borderRadius: 12,
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 14,
     fontSize: 16,
-    backgroundColor: '#f9fafb',
+    backgroundColor: COLORS.background.secondary,
+    color: COLORS.text.primary,
   },
   button: {
-    backgroundColor: '#6366f1',
-    borderRadius: 8,
+    backgroundColor: COLORS.primary,
+    borderRadius: 12,
     paddingVertical: 16,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     marginTop: 8,
+    shadowColor: COLORS.primary,
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   buttonDisabled: {
-    backgroundColor: '#9ca3af',
+    backgroundColor: COLORS.button.disabled,
+    shadowOpacity: 0,
+    elevation: 0,
   },
   buttonText: {
-    color: 'white',
+    color: COLORS.text.white,
     fontSize: 16,
     fontWeight: '600',
   },
-  backContainer: {
+  buttonIcon: {
+    marginLeft: 8,
+  },
+  backButton: {
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     marginTop: 24,
+    paddingVertical: 12,
   },
-  backLink: {
-    fontSize: 16,
-    color: '#6366f1',
-    fontWeight: '600',
+  backButtonIcon: {
+    marginRight: 6,
+  },
+  backButtonText: {
+    fontSize: 14,
+    color: COLORS.text.secondary,
   },
 });
 
