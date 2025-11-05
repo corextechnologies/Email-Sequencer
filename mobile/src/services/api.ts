@@ -25,8 +25,8 @@ const getBaseURL = () => {
   //   return apiUrl;
   // }
   // // Fallback
-  return 'http://192.168.100.14:3007/api';
-  //return 'https://nate.nexivio.online/api';
+  //return 'http://192.168.100.14:3007/api';
+  return 'https://nate.nexivio.online/api';
 };
 
  const BASE_URL = getBaseURL();
@@ -73,6 +73,20 @@ class ApiService {
           code: error.code,
           responseData: error.response?.data
         });
+
+        // Handle version outdated error (426)
+        if (error.response?.status === 426) {
+          const errorData = error.response?.data as any;
+          if (errorData?.updateRequired) {
+            console.log('⚠️ App version outdated - update required');
+            // Store update info to show modal
+            AsyncStorage.setItem('updateRequired', JSON.stringify({
+              requiredVersion: errorData.error.requiredVersion,
+              currentVersion: errorData.error.currentVersion,
+              message: errorData.error.message
+            }));
+          }
+        }
 
         if (error.response?.status === 401) {
           // Token expired or invalid, clear storage
