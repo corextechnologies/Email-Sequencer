@@ -1,8 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 
 // Phase 2: Set to new version to block old versions
-// Update this to '1.1' to block 1.0.1 and older
-const MIN_REQUIRED_VERSION = '1.1';
+// Update this to '1.2' to block 1.1 and older
+const MIN_REQUIRED_VERSION = '1.2';
 
 // Control enforcement via environment variable
 // Set VERSION_ENFORCEMENT_ENABLED=true in .env when ready for Phase 2
