@@ -6,13 +6,13 @@ const MIN_REQUIRED_VERSION = '1.2';
 
 // Control enforcement via environment variable
 // Set VERSION_ENFORCEMENT_ENABLED=true in .env when ready for Phase 2
-const ENFORCEMENT_ENABLED = process.env.VERSION_ENFORCEMENT_ENABLED === 'true';
+// Read dynamically to ensure it's loaded after dotenv.config()
+function isEnforcementEnabled(): boolean {
+  return process.env.VERSION_ENFORCEMENT_ENABLED === 'true';
+}
 
-// Debug: Log enforcement status on server start
-console.log('🔒 Version Enforcement Status:');
-console.log(`   VERSION_ENFORCEMENT_ENABLED env var: ${process.env.VERSION_ENFORCEMENT_ENABLED}`);
-console.log(`   ENFORCEMENT_ENABLED constant: ${ENFORCEMENT_ENABLED}`);
-console.log(`   MIN_REQUIRED_VERSION: ${MIN_REQUIRED_VERSION}`);
+// Debug: Log enforcement status on first middleware call
+let debugLogged = false;
 
 interface VersionRequest extends Request {
   version?: string;
@@ -27,6 +27,15 @@ export function versionCheckMiddleware(
   res: Response,
   next: NextFunction
 ): void {
+  // Debug: Log enforcement status on first request
+  if (!debugLogged) {
+    console.log('🔒 Version Enforcement Status:');
+    console.log(`   VERSION_ENFORCEMENT_ENABLED env var: ${process.env.VERSION_ENFORCEMENT_ENABLED}`);
+    console.log(`   ENFORCEMENT_ENABLED: ${isEnforcementEnabled()}`);
+    console.log(`   MIN_REQUIRED_VERSION: ${MIN_REQUIRED_VERSION}`);
+    debugLogged = true;
+  }
+
   // Skip version check for auth routes (login/register should always work)
   if (req.path.startsWith('/auth/login') || req.path.startsWith('/auth/register')) {
     return next();
@@ -45,7 +54,7 @@ export function versionCheckMiddleware(
       console.warn(`⚠️ Outdated version detected: ${appVersion} (min required: ${MIN_REQUIRED_VERSION})`);
       
       // Block if enforcement is enabled
-      if (ENFORCEMENT_ENABLED) {
+      if (isEnforcementEnabled()) {
         res.status(426).json({
           success: false,
           error: {
@@ -63,7 +72,7 @@ export function versionCheckMiddleware(
     // Log missing version header
     console.warn('⚠️ Missing X-App-Version header in request:', req.path);
     // If enforcement is enabled and no version header, block old APKs without headers
-    if (ENFORCEMENT_ENABLED) {
+    if (isEnforcementEnabled()) {
       res.status(426).json({
         success: false,
         error: {

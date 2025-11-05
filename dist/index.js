@@ -8,6 +8,14 @@ const cors_1 = __importDefault(require("cors"));
 const helmet_1 = __importDefault(require("helmet"));
 const morgan_1 = __importDefault(require("morgan"));
 const dotenv_1 = __importDefault(require("dotenv"));
+const path_1 = __importDefault(require("path"));
+// Load environment variables FIRST before importing anything that uses them
+// Load .env from project root directory (works from both src/ and dist/)
+const rootPath = path_1.default.resolve(__dirname, '..');
+dotenv_1.default.config({ path: path_1.default.join(rootPath, '.env') });
+// Fallback: try current directory
+dotenv_1.default.config();
+// Now import everything else after .env is loaded
 const errorHandler_1 = require("./middleware/errorHandler");
 const auth_1 = require("./routes/auth");
 const emailAccounts_1 = require("./routes/emailAccounts");
@@ -29,11 +37,6 @@ const analytics_1 = require("./routes/analytics");
 const replyResponses_1 = require("./routes/replyResponses");
 const profile_1 = require("./routes/profile");
 const versionCheck_1 = require("./middleware/versionCheck");
-// Load environment variables
-// Try multiple paths to find .env file
-dotenv_1.default.config(); // Default: .env in current directory
-dotenv_1.default.config({ path: '.env' }); // Explicit path
-dotenv_1.default.config({ path: '.env.production' }); // Production env
 // Debug: Verify SMTP environment variables are loaded
 console.log('📧 Environment Variables Check:');
 console.log('SMTP_HOST:', process.env.SMTP_HOST || 'NOT SET');

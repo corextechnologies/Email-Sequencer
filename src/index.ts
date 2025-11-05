@@ -3,6 +3,17 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
+import path from 'path';
+
+// Load environment variables FIRST before importing anything that uses them
+// Load .env from project root directory (works from both src/ and dist/)
+const rootPath = path.resolve(__dirname, '..');
+dotenv.config({ path: path.join(rootPath, '.env') });
+// Fallback: try current directory
+dotenv.config();
+
+
+// Now import everything else after .env is loaded
 import { errorHandler } from './middleware/errorHandler';
 import { authRoutes } from './routes/auth';
 import { emailAccountRoutes } from './routes/emailAccounts';
@@ -24,12 +35,6 @@ import { createAnalyticsRoutes } from './routes/analytics';
 import { createReplyResponseRoutes } from './routes/replyResponses';
 import { profileRoutes } from './routes/profile';
 import { versionCheckMiddleware } from './middleware/versionCheck';
-
-// Load environment variables
-// Try multiple paths to find .env file
-dotenv.config(); // Default: .env in current directory
-dotenv.config({ path: '.env' }); // Explicit path
-dotenv.config({ path: '.env.production' }); // Production env
 
 // Debug: Verify SMTP environment variables are loaded
 console.log('📧 Environment Variables Check:');
