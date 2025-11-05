@@ -29,12 +29,16 @@ const ProfileScreen: React.FC<Props> = ({ navigation }) => {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // Change email states
   const [isChangingEmail, setIsChangingEmail] = useState(false);
   const [newEmail, setNewEmail] = useState('');
   const [emailCurrentPassword, setEmailCurrentPassword] = useState('');
   const [isUpdatingEmail, setIsUpdatingEmail] = useState(false);
+  const [showEmailPassword, setShowEmailPassword] = useState(false);
 
   useEffect(() => {
     loadProfile();
@@ -64,8 +68,18 @@ const ProfileScreen: React.FC<Props> = ({ navigation }) => {
       return;
     }
 
-    if (newPassword.length < 6) {
-      Alert.alert('Error', 'New password must be at least 6 characters long');
+    if (newPassword.length < 8) {
+      Alert.alert('Error', 'Password must be at least 8 characters long');
+      return;
+    }
+
+    if (!/[A-Z]/.test(newPassword)) {
+      Alert.alert('Error', 'Password must contain at least 1 uppercase letter');
+      return;
+    }
+
+    if (!/[0-9]/.test(newPassword)) {
+      Alert.alert('Error', 'Password must contain at least 1 digit');
       return;
     }
 
@@ -166,35 +180,71 @@ const ProfileScreen: React.FC<Props> = ({ navigation }) => {
           <>
             <View style={styles.fieldContainer}>
               <Text style={styles.fieldLabel}>Current Password</Text>
-              <TextInput
-                style={styles.input}
-                value={currentPassword}
-                onChangeText={setCurrentPassword}
-                placeholder="Enter current password"
-                secureTextEntry
-              />
+              <View style={styles.passwordInputContainer}>
+                <TextInput
+                  style={styles.passwordInput}
+                  value={currentPassword}
+                  onChangeText={setCurrentPassword}
+                  placeholder="Enter current password"
+                  secureTextEntry={!showCurrentPassword}
+                />
+                <TouchableOpacity
+                  onPress={() => setShowCurrentPassword(!showCurrentPassword)}
+                  style={styles.eyeIcon}
+                >
+                  <Ionicons
+                    name={showCurrentPassword ? 'eye-outline' : 'eye-off-outline'}
+                    size={20}
+                    color={COLORS.text.secondary}
+                  />
+                </TouchableOpacity>
+              </View>
             </View>
 
             <View style={styles.fieldContainer}>
               <Text style={styles.fieldLabel}>New Password</Text>
-              <TextInput
-                style={styles.input}
-                value={newPassword}
-                onChangeText={setNewPassword}
-                placeholder="Enter new password"
-                secureTextEntry
-              />
+              <View style={styles.passwordInputContainer}>
+                <TextInput
+                  style={styles.passwordInput}
+                  value={newPassword}
+                  onChangeText={setNewPassword}
+                  placeholder="Enter new password"
+                  secureTextEntry={!showNewPassword}
+                />
+                <TouchableOpacity
+                  onPress={() => setShowNewPassword(!showNewPassword)}
+                  style={styles.eyeIcon}
+                >
+                  <Ionicons
+                    name={showNewPassword ? 'eye-outline' : 'eye-off-outline'}
+                    size={20}
+                    color={COLORS.text.secondary}
+                  />
+                </TouchableOpacity>
+              </View>
             </View>
 
             <View style={styles.fieldContainer}>
               <Text style={styles.fieldLabel}>Confirm New Password</Text>
-              <TextInput
-                style={styles.input}
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-                placeholder="Confirm new password"
-                secureTextEntry
-              />
+              <View style={styles.passwordInputContainer}>
+                <TextInput
+                  style={styles.passwordInput}
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                  placeholder="Confirm new password"
+                  secureTextEntry={!showConfirmPassword}
+                />
+                <TouchableOpacity
+                  onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                  style={styles.eyeIcon}
+                >
+                  <Ionicons
+                    name={showConfirmPassword ? 'eye-outline' : 'eye-off-outline'}
+                    size={20}
+                    color={COLORS.text.secondary}
+                  />
+                </TouchableOpacity>
+              </View>
             </View>
 
             <View style={styles.editActions}>
@@ -253,13 +303,25 @@ const ProfileScreen: React.FC<Props> = ({ navigation }) => {
 
             <View style={styles.fieldContainer}>
               <Text style={styles.fieldLabel}>Current Password</Text>
-              <TextInput
-                style={styles.input}
-                value={emailCurrentPassword}
-                onChangeText={setEmailCurrentPassword}
-                placeholder="Enter current password to confirm"
-                secureTextEntry
-              />
+              <View style={styles.passwordInputContainer}>
+                <TextInput
+                  style={styles.passwordInput}
+                  value={emailCurrentPassword}
+                  onChangeText={setEmailCurrentPassword}
+                  placeholder="Enter current password to confirm"
+                  secureTextEntry={!showEmailPassword}
+                />
+                <TouchableOpacity
+                  onPress={() => setShowEmailPassword(!showEmailPassword)}
+                  style={styles.eyeIcon}
+                >
+                  <Ionicons
+                    name={showEmailPassword ? 'eye-outline' : 'eye-off-outline'}
+                    size={20}
+                    color={COLORS.text.secondary}
+                  />
+                </TouchableOpacity>
+              </View>
             </View>
 
             <View style={styles.editActions}>
@@ -367,6 +429,23 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: COLORS.text.primary,
     backgroundColor: COLORS.background.secondary,
+  },
+  passwordInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.border.light,
+    borderRadius: 8,
+    backgroundColor: COLORS.background.secondary,
+  },
+  passwordInput: {
+    flex: 1,
+    padding: 12,
+    fontSize: 16,
+    color: COLORS.text.primary,
+  },
+  eyeIcon: {
+    padding: 12,
   },
   editActions: {
     flexDirection: 'row',

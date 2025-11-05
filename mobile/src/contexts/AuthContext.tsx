@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import ApiService from '../services/api';
-import { User, LoginRequest, RegisterRequest } from '../types';
+import { User, LoginRequest, RegisterRequest, AuthResponse } from '../types';
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -9,6 +9,7 @@ interface AuthContextType {
   user: User | null;
   login: (credentials: LoginRequest) => Promise<void>;
   register: (userData: RegisterRequest) => Promise<void>;
+  verifyRegistrationOTP: (email: string, code: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -83,6 +84,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
+  const verifyRegistrationOTP = async (email: string, code: string) => {
+    try {
+      const response = await ApiService.verifyRegistrationOTP(email, code);
+      
+      await AsyncStorage.setItem('authToken', response.token);
+      await AsyncStorage.setItem('user', JSON.stringify(response.user));
+      
+      setUser(response.user);
+      setIsAuthenticated(true);
+    } catch (error) {
+      console.error('OTP verification failed:', error);
+      throw error;
+    }
+  };
+
   const logout = async () => {
     try {
       await AsyncStorage.removeItem('authToken');
@@ -112,6 +128,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     user,
     login,
     register,
+    verifyRegistrationOTP,
     logout,
     refreshUser,
   };

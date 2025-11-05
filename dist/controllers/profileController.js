@@ -49,12 +49,13 @@ class ProfileController {
                 });
                 return;
             }
-            if (newPassword.length < 6) {
+            // Validate password requirements: 8+ chars, 1 uppercase, 1 digit
+            if (newPassword.length < 8 || !/[A-Z]/.test(newPassword) || !/[0-9]/.test(newPassword)) {
                 res.status(400).json({
                     success: false,
                     error: {
                         code: 'VALIDATION_ERROR',
-                        message: 'New password must be at least 6 characters long'
+                        message: 'Password must be at least 8 characters long and contain at least 1 uppercase letter and 1 digit'
                     }
                 });
                 return;

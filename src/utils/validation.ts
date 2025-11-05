@@ -1,15 +1,25 @@
 import Joi from 'joi';
 
+// Reusable password validation schema
+const passwordValidation = Joi.string()
+  .min(8)
+  .pattern(/[A-Z]/)
+  .pattern(/[0-9]/)
+  .required()
+  .messages({
+    'string.min': 'Password must be at least 8 characters long',
+    'string.pattern.base': 'Password must contain at least 1 uppercase letter and 1 digit',
+    'any.required': 'Password is required',
+    'string.empty': 'Password cannot be empty'
+  });
+
 export const userValidation = {
   register: Joi.object({
     email: Joi.string().email().required().messages({
       'string.email': 'Please provide a valid email address',
       'any.required': 'Email is required'
     }),
-    password: Joi.string().min(6).required().messages({
-      'string.min': 'Password must be at least 6 characters long',
-      'any.required': 'Password is required'
-    })
+    password: passwordValidation
   }),
 
   login: Joi.object({
@@ -19,6 +29,51 @@ export const userValidation = {
     }),
     password: Joi.string().required().messages({
       'any.required': 'Password is required'
+    })
+  }),
+
+  forgotPassword: Joi.object({
+    email: Joi.string().email().required().messages({
+      'string.email': 'Please provide a valid email address',
+      'any.required': 'Email is required'
+    })
+  }),
+
+  resetPassword: Joi.object({
+    token: Joi.string().required().messages({
+      'any.required': 'Reset token is required',
+      'string.empty': 'Reset token cannot be empty'
+    }),
+    password: passwordValidation
+  }),
+
+  sendRegistrationOTP: Joi.object({
+    email: Joi.string().email().required().messages({
+      'string.email': 'Please provide a valid email address',
+      'any.required': 'Email is required'
+    }),
+    password: passwordValidation
+  }),
+
+  verifyRegistrationOTP: Joi.object({
+    email: Joi.string().email().required().messages({
+      'string.email': 'Please provide a valid email address',
+      'any.required': 'Email is required'
+    }),
+    code: Joi.string()
+      .pattern(/^\d{6}$/)
+      .required()
+      .messages({
+        'any.required': 'Verification code is required',
+        'string.empty': 'Verification code cannot be empty',
+        'string.pattern.base': 'Verification code must be exactly 6 digits'
+      })
+  }),
+
+  resendRegistrationOTP: Joi.object({
+    email: Joi.string().email().required().messages({
+      'string.email': 'Please provide a valid email address',
+      'any.required': 'Email is required'
     })
   })
 };

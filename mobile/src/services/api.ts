@@ -3,6 +3,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   LoginRequest,
   RegisterRequest,
+  ForgotPasswordRequest,
+  ResetPasswordRequest,
+  SendRegistrationOTPRequest,
+  VerifyRegistrationOTPRequest,
+  ResendRegistrationOTPRequest,
   AuthResponse,
   ApiResponse,
   User,
@@ -20,7 +25,8 @@ const getBaseURL = () => {
   //   return apiUrl;
   // }
   // // Fallback
-  return 'https://nate.nexivio.online/api';
+  return 'http://192.168.100.14:3007/api';
+  //return 'https://nate.nexivio.online/api';
 };
 
  const BASE_URL = getBaseURL();
@@ -117,6 +123,43 @@ class ApiService {
   async getMe(): Promise<User> {
     const response = await this.api.get<ApiResponse<{ user: User }>>('/auth/me');
     return response.data.data.user;
+  }
+
+  async forgotPassword(email: string): Promise<{ success: boolean; message: string }> {
+    const response = await this.api.post<ApiResponse<{ message: string }>>('/auth/forgot-password', { email });
+    return {
+      success: response.data.success,
+      message: response.data.message || 'If an account with that email exists, a password reset link has been sent.'
+    };
+  }
+
+  async resetPassword(token: string, password: string): Promise<{ success: boolean; message: string }> {
+    const response = await this.api.post<ApiResponse<{ message: string }>>('/auth/reset-password', { token, password });
+    return {
+      success: response.data.success,
+      message: response.data.message || 'Password has been reset successfully.'
+    };
+  }
+
+  async sendRegistrationOTP(email: string, password: string): Promise<{ success: boolean; message: string }> {
+    const response = await this.api.post<ApiResponse<{ message: string }>>('/auth/send-registration-otp', { email, password });
+    return {
+      success: response.data.success,
+      message: response.data.message || 'Verification code sent to your email. Please check your inbox to complete registration.'
+    };
+  }
+
+  async verifyRegistrationOTP(email: string, code: string): Promise<AuthResponse> {
+    const response = await this.api.post<ApiResponse<AuthResponse>>('/auth/verify-registration-otp', { email, code });
+    return response.data.data;
+  }
+
+  async resendRegistrationOTP(email: string): Promise<{ success: boolean; message: string }> {
+    const response = await this.api.post<ApiResponse<{ message: string }>>('/auth/resend-registration-otp', { email });
+    return {
+      success: response.data.success,
+      message: response.data.message || 'Verification code resent to your email. Please check your inbox.'
+    };
   }
 
   // Email account endpoints

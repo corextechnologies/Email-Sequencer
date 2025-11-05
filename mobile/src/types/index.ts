@@ -20,6 +20,29 @@ export interface RegisterRequest {
   password: string;
 }
 
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface ResetPasswordRequest {
+  token: string;
+  password: string;
+}
+
+export interface SendRegistrationOTPRequest {
+  email: string;
+  password: string;
+}
+
+export interface VerifyRegistrationOTPRequest {
+  email: string;
+  code: string;
+}
+
+export interface ResendRegistrationOTPRequest {
+  email: string;
+}
+
 export interface EmailAccount {
   id: number;
   provider: string;

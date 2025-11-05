@@ -117,6 +117,8 @@ export class Migrations {
 		await this.addSequenceProgressFields();
 		await this.addSequenceStartedAt();
 		await this.addEmailOpensTracking();
+		await this.addPasswordResetFields();
+		await this.addEmailVerificationFields();
       console.log('✅ All migrations completed successfully');
     } catch (error) {
       console.error('❌ Migration failed:', error);
@@ -684,5 +686,55 @@ export class Migrations {
 
 		await Database.query(query);
 		console.log('✅ Email opens tracking added');
+	}
+
+	/**
+	 * Add password reset fields to users table for forgot password functionality
+	 */
+	static async addPasswordResetFields(): Promise<void> {
+		const query = `
+			-- Add password reset token and expiry fields
+			ALTER TABLE users 
+			ADD COLUMN IF NOT EXISTS reset_token VARCHAR(255) NULL,
+			ADD COLUMN IF NOT EXISTS reset_token_expires_at TIMESTAMP NULL;
+
+			-- Create index for faster token lookups (partial index for non-null tokens)
+			CREATE INDEX IF NOT EXISTS idx_users_reset_token ON users(reset_token) 
+			WHERE reset_token IS NOT NULL;
+
+			-- Add comments for documentation
+			COMMENT ON COLUMN users.reset_token IS 'Hashed password reset token used for password reset functionality';
+			COMMENT ON COLUMN users.reset_token_expires_at IS 'Expiration timestamp for reset token. Tokens expire after 1 hour.';
+		`;
+
+		await Database.query(query);
+		console.log('✅ Password reset fields added to users table');
+	}
+
+	/**
+	 * Add email verification fields to users table for OTP-based registration
+	 */
+	static async addEmailVerificationFields(): Promise<void> {
+		const query = `
+			-- Add email verification fields
+			ALTER TABLE users 
+			ADD COLUMN IF NOT EXISTS verification_code VARCHAR(255) NULL,
+			ADD COLUMN IF NOT EXISTS verification_expires_at TIMESTAMP NULL,
+			ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT false,
+			ADD COLUMN IF NOT EXISTS temp_password_hash VARCHAR(255) NULL;
+
+			-- Create index for faster verification code lookups (partial index for non-null codes)
+			CREATE INDEX IF NOT EXISTS idx_users_verification_code ON users(verification_code) 
+			WHERE verification_code IS NOT NULL;
+
+			-- Add comments for documentation
+			COMMENT ON COLUMN users.verification_code IS 'Hashed 6-digit OTP code used for email verification during registration';
+			COMMENT ON COLUMN users.verification_expires_at IS 'Expiration timestamp for verification code. Codes expire after 15 minutes.';
+			COMMENT ON COLUMN users.email_verified IS 'Indicates whether the user email has been verified via OTP';
+			COMMENT ON COLUMN users.temp_password_hash IS 'Temporary password hash stored during registration until OTP is verified. Moved to password_hash after verification.';
+		`;
+
+		await Database.query(query);
+		console.log('✅ Email verification fields added to users table');
 	}
 }

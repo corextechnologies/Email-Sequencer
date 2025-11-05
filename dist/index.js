@@ -30,7 +30,17 @@ const replyResponses_1 = require("./routes/replyResponses");
 const profile_1 = require("./routes/profile");
 const versionCheck_1 = require("./middleware/versionCheck");
 // Load environment variables
-dotenv_1.default.config();
+// Try multiple paths to find .env file
+dotenv_1.default.config(); // Default: .env in current directory
+dotenv_1.default.config({ path: '.env' }); // Explicit path
+dotenv_1.default.config({ path: '.env.production' }); // Production env
+// Debug: Verify SMTP environment variables are loaded
+console.log('📧 Environment Variables Check:');
+console.log('SMTP_HOST:', process.env.SMTP_HOST || 'NOT SET');
+console.log('SMTP_PORT:', process.env.SMTP_PORT || 'NOT SET');
+console.log('SMTP_USER:', process.env.SMTP_USER || 'NOT SET');
+console.log('SMTP_PASS:', process.env.SMTP_PASS ? 'SET (hidden)' : 'NOT SET');
+console.log('SMTP_FROM:', process.env.SMTP_FROM || 'NOT SET');
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 3007;
 // Middleware

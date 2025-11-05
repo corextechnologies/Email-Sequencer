@@ -9,6 +9,11 @@ exports.authRoutes = router;
 // Public routes
 router.post('/register', authController_1.AuthController.register);
 router.post('/login', authController_1.AuthController.login);
+router.post('/forgot-password', authController_1.AuthController.forgotPassword);
+router.post('/reset-password', authController_1.AuthController.resetPassword);
+router.post('/send-registration-otp', authController_1.AuthController.sendRegistrationOTP);
+router.post('/verify-registration-otp', authController_1.AuthController.verifyRegistrationOTP);
+router.post('/resend-registration-otp', authController_1.AuthController.resendRegistrationOTP);
 // Protected routes
 router.get('/me', auth_1.authMiddleware, authController_1.AuthController.getMe);
 //# sourceMappingURL=auth.js.map

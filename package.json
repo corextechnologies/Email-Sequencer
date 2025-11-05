@@ -17,6 +17,8 @@
     "migrate": "node dist/database/migrate.js",
     "migrate:prod": "NODE_ENV=production node dist/database/migrate.js",
     "migrate:012": "node run-012-migration.js",
+    "migrate:015": "node scripts/run-015-password-reset-migration.js",
+    "migrate:016": "node scripts/run-016-email-verification-migration.js",
     "seed": "node dist/database/seed.js",
     "seed:prod": "NODE_ENV=production node dist/database/seed.js",
     "test": "jest",

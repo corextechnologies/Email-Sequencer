@@ -31,5 +31,13 @@ export declare class Migrations {
      * Add email opens tracking table and fields
      */
     static addEmailOpensTracking(): Promise<void>;
+    /**
+     * Add password reset fields to users table for forgot password functionality
+     */
+    static addPasswordResetFields(): Promise<void>;
+    /**
+     * Add email verification fields to users table for OTP-based registration
+     */
+    static addEmailVerificationFields(): Promise<void>;
 }
 //# sourceMappingURL=migrations.d.ts.map

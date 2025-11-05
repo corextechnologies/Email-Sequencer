@@ -5,16 +5,25 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.emailAccountValidation = exports.userValidation = void 0;
 const joi_1 = __importDefault(require("joi"));
+// Reusable password validation schema
+const passwordValidation = joi_1.default.string()
+    .min(8)
+    .pattern(/[A-Z]/)
+    .pattern(/[0-9]/)
+    .required()
+    .messages({
+    'string.min': 'Password must be at least 8 characters long',
+    'string.pattern.base': 'Password must contain at least 1 uppercase letter and 1 digit',
+    'any.required': 'Password is required',
+    'string.empty': 'Password cannot be empty'
+});
 exports.userValidation = {
     register: joi_1.default.object({
         email: joi_1.default.string().email().required().messages({
             'string.email': 'Please provide a valid email address',
             'any.required': 'Email is required'
         }),
-        password: joi_1.default.string().min(6).required().messages({
-            'string.min': 'Password must be at least 6 characters long',
-            'any.required': 'Password is required'
-        })
+        password: passwordValidation
     }),
     login: joi_1.default.object({
         email: joi_1.default.string().email().required().messages({
@@ -23,6 +32,46 @@ exports.userValidation = {
         }),
         password: joi_1.default.string().required().messages({
             'any.required': 'Password is required'
+        })
+    }),
+    forgotPassword: joi_1.default.object({
+        email: joi_1.default.string().email().required().messages({
+            'string.email': 'Please provide a valid email address',
+            'any.required': 'Email is required'
+        })
+    }),
+    resetPassword: joi_1.default.object({
+        token: joi_1.default.string().required().messages({
+            'any.required': 'Reset token is required',
+            'string.empty': 'Reset token cannot be empty'
+        }),
+        password: passwordValidation
+    }),
+    sendRegistrationOTP: joi_1.default.object({
+        email: joi_1.default.string().email().required().messages({
+            'string.email': 'Please provide a valid email address',
+            'any.required': 'Email is required'
+        }),
+        password: passwordValidation
+    }),
+    verifyRegistrationOTP: joi_1.default.object({
+        email: joi_1.default.string().email().required().messages({
+            'string.email': 'Please provide a valid email address',
+            'any.required': 'Email is required'
+        }),
+        code: joi_1.default.string()
+            .pattern(/^\d{6}$/)
+            .required()
+            .messages({
+            'any.required': 'Verification code is required',
+            'string.empty': 'Verification code cannot be empty',
+            'string.pattern.base': 'Verification code must be exactly 6 digits'
+        })
+    }),
+    resendRegistrationOTP: joi_1.default.object({
+        email: joi_1.default.string().email().required().messages({
+            'string.email': 'Please provide a valid email address',
+            'any.required': 'Email is required'
         })
     })
 };
