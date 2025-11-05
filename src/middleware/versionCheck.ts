@@ -8,6 +8,12 @@ const MIN_REQUIRED_VERSION = '1.2';
 // Set VERSION_ENFORCEMENT_ENABLED=true in .env when ready for Phase 2
 const ENFORCEMENT_ENABLED = process.env.VERSION_ENFORCEMENT_ENABLED === 'true';
 
+// Debug: Log enforcement status on server start
+console.log('🔒 Version Enforcement Status:');
+console.log(`   VERSION_ENFORCEMENT_ENABLED env var: ${process.env.VERSION_ENFORCEMENT_ENABLED}`);
+console.log(`   ENFORCEMENT_ENABLED constant: ${ENFORCEMENT_ENABLED}`);
+console.log(`   MIN_REQUIRED_VERSION: ${MIN_REQUIRED_VERSION}`);
+
 interface VersionRequest extends Request {
   version?: string;
 }
