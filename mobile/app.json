@@ -3,7 +3,7 @@
     "name": "Email Marketing - Bobos.ai",
     "slug": "email-marketing-bobos",
     "version": "1.1",
-    "icon": "./assets/Bobos Icon.png",
+    "icon": "./assets/Bobos-Icon.png",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "assetBundlePatterns": [
@@ -18,7 +18,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/Bobos Icon.png",
+        "foregroundImage": "./assets/Bobos-Icon.png",
         "backgroundColor": "#FFFFFF"
       },
       "permissions": [
