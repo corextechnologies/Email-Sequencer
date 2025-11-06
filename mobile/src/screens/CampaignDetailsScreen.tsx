@@ -75,7 +75,7 @@ export default function CampaignDetailsScreen() {
 			// Load personas from campaign_contacts table
 			const personaMap: {[contactId: number]: any} = {};
 			for (const contact of res.data) {
-				const personaId = (contact as any).persona_id;
+				const personaId = contact.persona_id;
 				console.log(`Contact ${contact.contact_id} has persona_id:`, personaId);
 				
 				if (personaId) {
@@ -244,7 +244,7 @@ const handleMatchPersonas = async (contactId: number) => {
 
 	// Check if contact has persona_id in raw data
 	const contact = contacts.find(c => c.contact_id === contactId);
-	if (contact && (contact as any).persona_id) {
+	if (contact && contact.persona_id) {
 		console.log('⚠️ Contact has persona_id in database, skipping AI call');
 		Alert.alert(
 			'Persona Already Assigned', 

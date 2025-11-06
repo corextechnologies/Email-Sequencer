@@ -28,6 +28,9 @@ const BusinessQuestionnaireStep3Screen: React.FC<Props> = ({ navigation }) => {
 
 
     const goNext = () => {
+        updateData({
+            targetAudience: targetMarket
+        });
         navigation.navigate('BusinessQuestionnaireStep4');
     };
 

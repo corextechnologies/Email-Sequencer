@@ -287,8 +287,11 @@ class ImapReplyDetector {
             return null;
         }
         const originalMessage = await this.findOriginalMessage(originalMessageId, account.id, db);
-        if (!originalMessage)
+        if (!originalMessage) {
+            // Log when we can't find the original message (for debugging)
+            console.log(`⚠️  Could not find original message for reply. Message ID from reply: ${originalMessageId}, Account ID: ${account.id}`);
             return null;
+        }
         return {
             campaign_id: originalMessage.campaign_id,
             contact_id: originalMessage.contact_id,
@@ -301,13 +304,29 @@ class ImapReplyDetector {
         };
     }
     async findOriginalMessage(messageId, smtpAccountId, db) {
+        if (!messageId)
+            return null;
+        // Normalize message ID - remove angle brackets for comparison
+        const normalizedId = messageId.replace(/^<|>$/g, '').trim();
+        // Try matching with both formats (with and without brackets)
+        // This handles cases where stored IDs have brackets but reply headers don't (or vice versa)
         const result = await db.query(`
       SELECT campaign_id, contact_id 
       FROM messages 
-      WHERE provider_message_id = $1 
-      AND smtp_account_id = $2 
+      WHERE smtp_account_id = $1 
       AND direction = 'outbound'
-    `, [messageId, smtpAccountId]);
+      AND (
+        provider_message_id = $2
+        OR provider_message_id = $3
+        OR REPLACE(REPLACE(provider_message_id, '<', ''), '>', '') = $4
+      )
+      LIMIT 1
+    `, [
+            smtpAccountId,
+            normalizedId, // Try without brackets
+            `<${normalizedId}>`, // Try with brackets
+            normalizedId // Try normalized comparison
+        ]);
         return result.rows[0] || null;
     }
     extractMessageIdFromSubject(subject) {

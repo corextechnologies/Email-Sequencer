@@ -36,6 +36,7 @@ export interface CampaignContactRow {
 	first_name: string | null;
 	last_name: string | null;
 	email: string;
+	persona_id?: string | null;
 }
 
 export interface Paginated<T> {

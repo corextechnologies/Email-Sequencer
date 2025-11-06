@@ -70,7 +70,7 @@ export class CampaignsService {
 				throw new Error(parsed.error.message);
 			}
 			console.log('✅ Campaigns loaded:', parsed.data.length);
-			return parsed.data;
+			return parsed.data as Campaign[];
 		} catch (error) {
 			console.error('❌ Error fetching campaigns:', error);
 			throw error;
@@ -112,7 +112,7 @@ export class CampaignsService {
 				throw new Error(parsed.error.message);
 			}
 			console.log('✅ Campaign created:', parsed.data.id);
-			return parsed.data;
+			return parsed.data as Campaign;
 		} catch (error: any) {
 			console.error('❌ Error creating campaign:', error);
 			console.error('❌ Error response:', error.response);
@@ -145,7 +145,7 @@ export class CampaignsService {
 		const res = await api.get(`/campaigns/${id}`);
 		const parsed = CampaignSchema.safeParse(res.data?.data ?? res.data);
 		if (!parsed.success) throw new Error(parsed.error.message);
-		return parsed.data;
+		return parsed.data as Campaign;
 	}
 
 	async updateCampaign(id: number, payload: Partial<{ 
@@ -170,7 +170,7 @@ export class CampaignsService {
 		}
 		
 		console.log('✅ Parsed campaign data:', parsed.data);
-		return parsed.data;
+		return parsed.data as Campaign;
 	}
 
 	async deleteCampaign(id: number): Promise<void> {
@@ -181,7 +181,7 @@ export class CampaignsService {
 		const res = await api.patch(`/campaigns/${id}/status`, { status });
 		const parsed = CampaignSchema.safeParse(res.data?.data ?? res.data);
 		if (!parsed.success) throw new Error(parsed.error.message);
-		return parsed.data;
+		return parsed.data as Campaign;
 	}
 
 	// Steps
@@ -195,15 +195,15 @@ export class CampaignsService {
 	async createSteps(campaignId: number, payload: any): Promise<SequenceStep[] | SequenceStep> {
 		const res = await api.post(`/campaigns/${campaignId}/steps`, payload);
 		const arr = Array.isArray(res.data?.data ?? res.data) ? StepsListSchema.safeParse(res.data?.data ?? res.data) : StepSchema.safeParse(res.data?.data ?? res.data);
-		if (!arr.success) throw new Error((arr as any).error.message);
-		return (arr as any).data;
+		if (!arr.success) throw new Error(arr.error.message);
+		return arr.data as SequenceStep[] | SequenceStep;
 	}
 
 	async updateStep(campaignId: number, stepId: number, payload: Partial<SequenceStep>): Promise<SequenceStep> {
 		const res = await api.put(`/campaigns/${campaignId}/steps/${stepId}`, payload);
 		const parsed = StepSchema.safeParse(res.data?.data ?? res.data);
 		if (!parsed.success) throw new Error(parsed.error.message);
-		return parsed.data;
+		return parsed.data as SequenceStep;
 	}
 
 	async deleteStep(campaignId: number, stepId: number): Promise<void> {
@@ -229,7 +229,7 @@ export class CampaignsService {
 		const res = await api.post(`/campaigns/${campaignId}/contacts`, { contact_ids });
 		const inserted = z.object({ inserted: z.number() }).safeParse(res.data?.data ?? res.data);
 		if (!inserted.success) throw new Error(inserted.error.message);
-		return inserted.data;
+		return inserted.data as { inserted: number };
 	}
 
 	async listAttachedContacts(campaignId: number, params: { search?: string; page?: number; limit?: number }): Promise<Paginated<CampaignContactRow>> {
@@ -240,7 +240,7 @@ export class CampaignsService {
 		const res = await api.get(`/campaigns/${campaignId}/contacts${query.toString() ? `?${query.toString()}` : ''}`);
 		const parsed = PaginatedContactsSchema.safeParse(res.data ?? res);
 		if (!parsed.success) throw new Error(parsed.error.message);
-		return parsed.data as any;
+		return parsed.data as Paginated<CampaignContactRow>;
 	}
 
 	async removeAttachedContact(campaignId: number, contactId: number): Promise<void> {
@@ -316,7 +316,7 @@ export class CampaignsService {
 		const res = await api.patch(`/campaigns/${campaignId}/status`, { status: 'draft' });
 		const parsed = CampaignSchema.safeParse(res.data?.data ?? res.data);
 		if (!parsed.success) throw new Error(parsed.error.message);
-		return parsed.data;
+		return parsed.data as Campaign;
 	}
 
 	async canLaunchCampaign(campaignId: number): Promise<{ canLaunch: boolean; reason?: string }> {
@@ -376,7 +376,17 @@ export class CampaignsService {
 			}
 			
 			console.log('✅ Campaign metrics loaded:', parsed.data);
-			return parsed.data;
+			return parsed.data as {
+				recipients: number;
+				sent: number;
+				failed: number;
+				bounced: number;
+				replies: number;
+				unsubscribes: number;
+				clickRate: number;
+				replyRate: number;
+				progress: { completed: number; total: number };
+			};
 		} catch (error) {
 			console.error('❌ Error fetching campaign metrics:', error);
 			throw error;

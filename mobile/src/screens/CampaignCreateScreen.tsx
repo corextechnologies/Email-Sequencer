@@ -272,12 +272,12 @@ export default function CampaignCreateScreen() {
 					<View style={styles.emptyStateContainer}>
 						<Text style={styles.emptyStateText}>No active email accounts found</Text>
 						<Text style={styles.emptyStateSubtext}>You need at least one active email account to create campaigns</Text>
-						<TouchableOpacity 
-							style={styles.addAccountButton}
-							onPress={() => nav.navigate('AddEmailAccount')}
-						>
-							<Text style={styles.addAccountButtonText}>Add Email Account</Text>
-						</TouchableOpacity>
+					<TouchableOpacity 
+						style={styles.addAccountButton}
+						onPress={() => nav.navigate('EmailAccounts', { screen: 'AddEmailAccount' })}
+					>
+						<Text style={styles.addAccountButtonText}>Add Email Account</Text>
+					</TouchableOpacity>
 					</View>
 				) : (
 					<View style={styles.emailAccountsList}>

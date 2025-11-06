@@ -93,6 +93,9 @@ async function run() {
   let running = true;
   let jobCount = 0;
   let lastEmailSentAt = 0;
+  let consecutiveErrors = 0;
+  const BASE_DELAY_MS = 1000; // Start with 1 second
+  const MAX_DELAY_MS = 30000; // Cap at 30 seconds
   
   process.on('SIGINT', () => { 
     console.log('🛑 Received SIGINT, shutting down gracefully...');
@@ -106,6 +109,13 @@ async function run() {
   while (running) {
     try {
       const sendJob = await queue.fetchNext('send-email');
+      
+      // Reset error counter on successful connection
+      if (consecutiveErrors > 0) {
+        console.log(`✅ Database connection restored after ${consecutiveErrors} error(s)`);
+        consecutiveErrors = 0;
+      }
+      
       if (sendJob) {
         jobCount++;
         console.log(`🎯 Worker processing job #${jobCount} at ${new Date().toISOString()}`);
@@ -135,8 +145,26 @@ async function run() {
         await new Promise(r => setTimeout(r, 500));
       }
     } catch (e) {
-      console.error('❌ Worker loop error:', e);
-      await new Promise(r => setTimeout(r, 1000));
+      consecutiveErrors++;
+      
+      // Calculate exponential backoff delay: 1s, 2s, 4s, 8s, 16s, then cap at 30s
+      const delay = Math.min(
+        BASE_DELAY_MS * Math.pow(2, Math.min(consecutiveErrors - 1, 4)),
+        MAX_DELAY_MS
+      );
+      
+      // Log every 10th error or first few errors to reduce spam
+      if (consecutiveErrors <= 3 || consecutiveErrors % 10 === 0) {
+        const errorMessage = e instanceof Error ? e.message : String(e);
+        console.error(`❌ Worker loop error (attempt ${consecutiveErrors}, retrying in ${Math.round(delay / 1000)}s):`, errorMessage);
+        
+        // Log full error details only for first error or every 50th error
+        if (consecutiveErrors === 1 || consecutiveErrors % 50 === 0) {
+          console.error('Full error details:', e);
+        }
+      }
+      
+      await new Promise(r => setTimeout(r, delay));
     }
   }
   
