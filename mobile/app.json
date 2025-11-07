@@ -3,7 +3,7 @@
     "name": "Email Marketing - Bobos.ai",
     "slug": "email-marketing-bobos",
     "version": "1.2",
-    "icon": "./assets/Bobos-Icon.png",
+    "icon": "./assets/Bobos-Icon-small.png",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "assetBundlePatterns": [
