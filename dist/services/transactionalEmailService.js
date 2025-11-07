@@ -102,122 +102,24 @@ class TransactionalEmailService {
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Password Reset</title>
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-      background-color: #f8fafc;
-      padding: 20px;
+      color: #000000;
     }
-    .email-wrapper {
-      max-width: 500px;
-      margin: 0 auto;
-      background-color: #ffffff;
-      border-radius: 12px;
-      overflow: hidden;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-    }
-    .header {
-      background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-      padding: 32px 24px;
-      text-align: center;
-    }
-    .logo {
-      font-size: 22px;
-      font-weight: 700;
-      color: #ffffff;
-      letter-spacing: 0.5px;
-    }
-    .content {
-      padding: 40px 32px;
-      text-align: center;
-    }
-    .title {
-      font-size: 24px;
-      font-weight: 700;
-      color: #1f2937;
-      margin-bottom: 12px;
-    }
-    .subtitle {
-      font-size: 15px;
-      color: #6b7280;
-      margin-bottom: 32px;
-      line-height: 1.5;
-    }
-    .code-container {
-      background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
-      border-radius: 12px;
-      padding: 32px 24px;
-      margin: 32px 0;
-      border: 2px dashed #6366f1;
-    }
-    .code-label {
-      font-size: 11px;
-      color: #6b7280;
-      text-transform: uppercase;
-      letter-spacing: 1.5px;
-      font-weight: 600;
-      margin-bottom: 16px;
-    }
-    .code-value {
-      font-family: 'SF Mono', 'Monaco', 'Courier New', monospace;
-      font-size: 42px;
-      font-weight: 700;
-      color: #1f2937;
-      letter-spacing: 6px;
-      user-select: all;
-      cursor: text;
-    }
-    .footer {
-      padding: 24px 32px;
-      background-color: #f9fafb;
-      border-top: 1px solid #e5e7eb;
-      text-align: center;
-    }
-    .footer-text {
-      font-size: 12px;
-      color: #9ca3af;
-      line-height: 1.6;
-    }
-    .expiry-note {
-      font-size: 12px;
-      color: #6b7280;
-      margin-top: 20px;
-      padding-top: 20px;
-      border-top: 1px solid #e5e7eb;
+    @media (prefers-color-scheme: dark) {
+      body {
+        color: #ffffff;
+      }
     }
   </style>
 </head>
 <body>
-  <div class="email-wrapper">
-    <div class="header">
-      <div class="logo">${appName}</div>
-    </div>
-    
-    <div class="content">
-      <h1 class="title">Password Reset</h1>
-      <p class="subtitle">Enter this code in the app to reset your password:</p>
-
-      <div class="code-container">
-        <div class="code-label">Reset Code</div>
-        <div class="code-value">${formattedToken}</div>
-      </div>
-
-      <div class="expiry-note">
-        ⏱️ Expires in 1 hour
-      </div>
-    </div>
-
-    <div class="footer">
-      <p class="footer-text">Didn't request this? You can safely ignore this email.</p>
-    </div>
-  </div>
+  <p>Password Reset</p>
+  <p>Enter this code in the app to reset your password:</p>
+  <p style="font-size: 24px; font-weight: bold; letter-spacing: 4px;">${formattedToken}</p>
+  <p>Expires in 1 hour</p>
+  <p>Didn't request this? You can safely ignore this email.</p>
 </body>
 </html>
     `.trim();
@@ -279,122 +181,24 @@ Didn't request this? You can safely ignore this email.
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Email Verification</title>
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-      background-color: #f8fafc;
-      padding: 20px;
+      color: #000000;
     }
-    .email-wrapper {
-      max-width: 500px;
-      margin: 0 auto;
-      background-color: #ffffff;
-      border-radius: 12px;
-      overflow: hidden;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-    }
-    .header {
-      background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-      padding: 32px 24px;
-      text-align: center;
-    }
-    .logo {
-      font-size: 22px;
-      font-weight: 700;
-      color: #ffffff;
-      letter-spacing: 0.5px;
-    }
-    .content {
-      padding: 40px 32px;
-      text-align: center;
-    }
-    .title {
-      font-size: 24px;
-      font-weight: 700;
-      color: #1f2937;
-      margin-bottom: 12px;
-    }
-    .subtitle {
-      font-size: 15px;
-      color: #6b7280;
-      margin-bottom: 32px;
-      line-height: 1.5;
-    }
-    .code-container {
-      background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
-      border-radius: 12px;
-      padding: 32px 24px;
-      margin: 32px 0;
-      border: 2px dashed #6366f1;
-    }
-    .code-label {
-      font-size: 11px;
-      color: #6b7280;
-      text-transform: uppercase;
-      letter-spacing: 1.5px;
-      font-weight: 600;
-      margin-bottom: 16px;
-    }
-    .code-value {
-      font-family: 'SF Mono', 'Monaco', 'Courier New', monospace;
-      font-size: 42px;
-      font-weight: 700;
-      color: #1f2937;
-      letter-spacing: 6px;
-      user-select: all;
-      cursor: text;
-    }
-    .footer {
-      padding: 24px 32px;
-      background-color: #f9fafb;
-      border-top: 1px solid #e5e7eb;
-      text-align: center;
-    }
-    .footer-text {
-      font-size: 12px;
-      color: #9ca3af;
-      line-height: 1.6;
-    }
-    .expiry-note {
-      font-size: 12px;
-      color: #6b7280;
-      margin-top: 20px;
-      padding-top: 20px;
-      border-top: 1px solid #e5e7eb;
+    @media (prefers-color-scheme: dark) {
+      body {
+        color: #ffffff;
+      }
     }
   </style>
 </head>
 <body>
-  <div class="email-wrapper">
-    <div class="header">
-      <div class="logo">${appName}</div>
-    </div>
-    
-    <div class="content">
-      <h1 class="title">Email Verification</h1>
-      <p class="subtitle">Enter this code to complete your registration:</p>
-
-      <div class="code-container">
-        <div class="code-label">Verification Code</div>
-        <div class="code-value">${formattedCode}</div>
-      </div>
-
-      <div class="expiry-note">
-        ⏱️ Expires in 15 minutes
-      </div>
-    </div>
-
-    <div class="footer">
-      <p class="footer-text">If you didn't create an account, you can safely ignore this email.</p>
-    </div>
-  </div>
+  <p>Email Verification</p>
+  <p>Enter this code to complete your registration:</p>
+  <p style="font-size: 24px; font-weight: bold; letter-spacing: 4px;">${formattedCode}</p>
+  <p>Expires in 15 minutes</p>
+  <p>If you didn't create an account, you can safely ignore this email.</p>
 </body>
 </html>
     `.trim();
