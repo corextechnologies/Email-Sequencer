@@ -22,9 +22,8 @@ export default function CampaignCreateScreen() {
 	const [loadingContacts, setLoadingContacts] = useState(false);
 	const [showContactSearch, setShowContactSearch] = useState(false);
 
-	// Load email accounts on component mount
+	// Load contacts on component mount
 	useEffect(() => {
-		loadEmailAccounts();
 		loadContacts();
 	}, []);
 
@@ -51,9 +50,13 @@ export default function CampaignCreateScreen() {
 			const accounts = await api.getEmailAccounts();
 			console.log('📧 All email accounts:', accounts);
 			
-			// Filter to show only active accounts
-			const activeAccounts = accounts.filter((acc: any) => acc.is_active);
-			console.log('📧 Active email accounts:', activeAccounts);
+			// Filter to show only active accounts and remove duplicates by ID
+			const activeAccounts = accounts
+				.filter((acc: any) => acc.is_active)
+				.filter((acc: any, index: number, self: any[]) => 
+					self.findIndex((a: any) => a.id === acc.id) === index
+				);
+			console.log('📧 Active email accounts (deduplicated):', activeAccounts);
 			
 			setEmailAccounts(activeAccounts);
 			

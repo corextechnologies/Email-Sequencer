@@ -17,7 +17,7 @@ import ApiService from '../services/api';
 
 
 const ScanWebsiteModal: React.FC<Props> = ({ visible, onClose, onAnalyze }) => {
-    const [url, setUrl] = useState('');
+    const [url, setUrl] = useState('https://');
     const [websiteData, setWebsiteData] = useState<any>(null);
 
     const handleAnalyze = async () => {
@@ -31,8 +31,8 @@ const ScanWebsiteModal: React.FC<Props> = ({ visible, onClose, onAnalyze }) => {
             // Notify parent
             onAnalyze(url.trim());
 
-            // Clear & close
-            setUrl('');
+            // Reset to https:// and close
+            setUrl('https://');
             onClose();
         } catch (error: any) {
             console.error('❌ Error analyzing website:', error.response?.data || error.message);
