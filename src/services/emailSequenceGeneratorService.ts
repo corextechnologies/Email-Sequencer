@@ -22,8 +22,10 @@ export interface EmailSequenceResult {
   email_sequence: EmailInSequence[];
 }
 
-function buildEmailSequencePrompt(contact: any, persona: any, sequenceParams: SequenceParams, enrichmentData?: any): string {
+function buildEmailSequencePrompt(contact: any, persona: any, user: any, sequenceParams: SequenceParams, enrichmentData?: any): string {
   const fullName = `${contact.first_name || ''} ${contact.last_name || ''}`.trim();
+  const userEmail = user?.email || 'sender@example.com';
+  const userCompanyName = userEmail.split('@')[1] || 'example.com';
   
   // Build enrichment section
   let enrichmentSection = "No enrichment data available";
@@ -51,19 +53,28 @@ function buildEmailSequencePrompt(contact: any, persona: any, sequenceParams: Se
 
 Create a personalized email sequence designed to maximize engagement and replies based on the following inputs:
 
-1. **Customer Persona:**
+⚠️ **CRITICAL DISTINCTION:**
+- **SENDER** = The person writing the email (you/your company)
+- **RECEIVER** = The person receiving the email (the contact/persona)
+
+1. **SENDER INFORMATION (YOU - The person writing the email):**
+- Email: ${userEmail}
+- Company: ${userCompanyName}
+- Note: The complimentary closing and signature should match YOUR (sender's) communication style, NOT the receiver's persona.
+
+2. **RECEIVER PERSONA (THE CONTACT - Who you're writing TO):**
 ${JSON.stringify(persona, null, 2)}
 
-2. **Contact Information:**
+3. **RECEIVER CONTACT INFORMATION:**
 - Name: ${fullName || 'Unknown'}
 - Email: ${contact.email}
 - Company: ${contact.company || 'Unknown'}
 - Job Title: ${contact.job_title || 'Unknown'}
 
-3. **Contact Enrichment Data:**
+4. **RECEIVER ENRICHMENT DATA:**
 ${enrichmentSection}
 
-4. **Sequence Parameters:**
+5. **Sequence Parameters:**
 - Number of emails: ${sequenceParams.numberOfEmails}
 - Schedule: ${sequenceParams.schedule.join(', ')}
 - Primary goal: ${sequenceParams.primaryGoal}
@@ -85,6 +96,17 @@ Email Body: (MUST be proper HTML with paragraph tags)
 <p>[Value paragraph - tie benefits to their situation/persona challenges]</p>
 <p>[CTA paragraph - simple, low-friction ask to get a reply]</p>
 <p>Best regards,<br>{{user.email}}</p>
+
+🚨 **CRITICAL: COMPLIMENTARY CLOSING RULES:**
+- The complimentary closing (e.g., "Best regards", "Sincerely", "Thanks") should match the SENDER's communication style, NOT the receiver's persona
+- The receiver's persona describes WHO YOU'RE WRITING TO, not who you are
+- Use professional, standard closings appropriate for the SENDER (you), such as:
+  * "Best regards," (most common)
+  * "Sincerely,"
+  * "Thanks,"
+  * "Best,"
+- DO NOT use the receiver's communication style or persona characteristics in the closing
+- The closing should always end with {{user.email}} which represents the SENDER's email address
 
 ✅ **HTML REQUIREMENTS:**
 - MUST wrap each paragraph in <p></p> tags
@@ -174,7 +196,21 @@ export async function generateEmailSequenceForContact(
   sequenceParams: SequenceParams
 ): Promise<EmailSequenceResult | { error: string }> {
   
-  // 1) Fetch contact
+  // 1) Fetch user (sender) information
+  console.log(`👤 Fetching sender (user) information for user ${userId}`);
+  const userRes = await Database.query(
+    'SELECT id, email FROM users WHERE id = $1',
+    [userId]
+  );
+  
+  if (userRes.rows.length === 0) {
+    return { error: 'User not found.' };
+  }
+  
+  const user = userRes.rows[0];
+  console.log(`✅ Sender: ${user.email}`);
+
+  // 2) Fetch contact (receiver) information
   console.log(`📧 Generating email sequence for contact ${contactId}`);
   const contactRes = await Database.query(
     'SELECT id, first_name, last_name, email, company, job_title FROM contacts WHERE id = $1 AND user_id = $2',
@@ -187,7 +223,7 @@ export async function generateEmailSequenceForContact(
   
   const contact = contactRes.rows[0];
 
-  // 1.5) Try to fetch enrichment data if it exists
+  // 3) Try to fetch enrichment data if it exists
   let enrichmentData = null;
   try {
     const enrichmentRes = await Database.query(
@@ -210,7 +246,7 @@ export async function generateEmailSequenceForContact(
     console.log('ℹ️  Could not fetch enrichment data - proceeding without it');
   }
 
-  // 2) Note: Persona is stored locally in mobile app, not in database
+  // 4) Note: Persona is stored locally in mobile app, not in database
   // For now, we'll fetch all personas and let the mobile app pass persona data
   // Or we can generate without persona if it's purely local
   console.log('⚠️ Note: Persona is stored locally on mobile. Fetching all personas for reference.');
@@ -227,13 +263,13 @@ export async function generateEmailSequenceForContact(
   // Use the first persona as default (mobile app will pass specific persona later)
   const persona = personasRes.rows[0];
 
-  // 3) Build the AI prompt (pass enrichment data if available)
-  const prompt = buildEmailSequencePrompt(contact, persona, sequenceParams, enrichmentData);
+  // 5) Build the AI prompt (pass user/sender data, enrichment data if available)
+  const prompt = buildEmailSequencePrompt(contact, persona, user, sequenceParams, enrichmentData);
   
   console.log('🤖 Calling AI to generate email sequence...');
-  console.log(`Provider: ${provider}, Contact: ${contact.email}, Emails: ${sequenceParams.numberOfEmails}`);
+  console.log(`Provider: ${provider}, Sender: ${user.email}, Receiver: ${contact.email}, Emails: ${sequenceParams.numberOfEmails}`);
 
-  // 4) Call Universal LLM
+  // 6) Call Universal LLM
   let aiResponse: string;
   try {
     aiResponse = await UniversalLlmService.generateText({
@@ -251,7 +287,7 @@ export async function generateEmailSequenceForContact(
   console.log('📝 AI response received, parsing...');
   console.log('Response preview:', aiResponse.substring(0, 200));
 
-  // 5) Parse the JSON response
+  // 7) Parse the JSON response
   const parsed = cleanAndParseEmailSequence(aiResponse);
   
   if (!parsed) {
@@ -261,7 +297,7 @@ export async function generateEmailSequenceForContact(
 
   console.log(`✅ Successfully generated ${parsed.email_sequence.length} emails`);
 
-  // 6) Return the parsed sequence (no DB save)
+  // 8) Return the parsed sequence (no DB save)
   return parsed;
 }
 

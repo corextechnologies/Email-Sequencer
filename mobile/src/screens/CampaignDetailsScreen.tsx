@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, TouchableOpacity, ActivityIndicator, Alert, ScrollView, Modal, FlatList, TextInput } from 'react-native';
 import { RouteProp, useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -58,7 +58,8 @@ export default function CampaignDetailsScreen() {
 
 	const [enrichingContact, setEnrichingContact] = useState<number | null>(null);
 	const [enrichedData, setEnrichedData] = useState<{ [contactId: number]: any }>({});
-
+	const [currentCardIndex, setCurrentCardIndex] = useState(0);
+	const scrollViewRef = useRef<ScrollView>(null);
 
 	const [popupVisible, setPopupVisible] = useState(false);
 	const [popupTitle, setPopupTitle] = useState('');
@@ -71,6 +72,7 @@ export default function CampaignDetailsScreen() {
 		try {
 			const res = await campaignsService.listAttachedContacts(id, { search: '', page: 1, limit: 50 });
 			setContacts(res.data);
+			setCurrentCardIndex(0); // Reset to first card when contacts are loaded
 			
 			// Load personas from campaign_contacts table
 			const personaMap: {[contactId: number]: any} = {};
@@ -92,6 +94,22 @@ export default function CampaignDetailsScreen() {
 			}
 			console.log('📋 Final persona map:', Object.keys(personaMap).length, 'contacts with personas');
 			setContactPersonas(personaMap);
+			
+			// Load existing enrichment data for all contacts
+			const enrichmentMap: {[contactId: number]: any} = {};
+			for (const contact of res.data) {
+				try {
+					const enrichmentRes = await ApiService.getEnrichedData(contact.contact_id);
+					if (enrichmentRes && !enrichmentRes.error) {
+						enrichmentMap[contact.contact_id] = enrichmentRes;
+						console.log(`✅ Loaded enrichment data for contact ${contact.contact_id}`);
+					}
+				} catch (error) {
+					// Contact not enriched yet, that's okay
+					console.log(`Contact ${contact.contact_id} has no enrichment data`);
+				}
+			}
+			setEnrichedData(enrichmentMap);
 			
 			// Load saved sequences for all contacts
 			await loadSavedSequences(res.data);
@@ -750,323 +768,478 @@ const handleMatchPersonas = async (contactId: number) => {
 							<Text style={{ marginTop: 8, color: '#666' }}>Loading contacts...</Text>
 						</View>
 					) : contacts.length > 0 ? (
-						<ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }}>
+						<>
+						<ScrollView 
+							ref={scrollViewRef}
+							horizontal 
+							showsHorizontalScrollIndicator={false} 
+							style={{ marginBottom: 12 }}
+							onScroll={(event) => {
+								const cardWidth = 336; // 320px width + 16px marginRight
+								const scrollPosition = event.nativeEvent.contentOffset.x;
+								const index = Math.round(scrollPosition / cardWidth);
+								setCurrentCardIndex(index);
+							}}
+							scrollEventThrottle={16}
+							pagingEnabled={false}
+							snapToInterval={336}
+							snapToAlignment="start"
+							decelerationRate="fast"
+						>
 							{contacts.map((contact) => {
 								const hasSequence = savedSequences[contact.contact_id];
 								const sequenceCount = hasSequence?.emails?.length || 0;
+								const isEnriched = !!enrichedData[contact.contact_id];
+								const hasPersona = contactPersonas[contact.contact_id];
+								
+								// Determine step statuses
+								const step1Status = isEnriched ? 'completed' : (enrichingContact === contact.contact_id ? 'in-progress' : 'pending');
+								const step2Status = hasPersona ? 'completed' : 'pending';
+								const step3Status = hasSequence ? 'completed' : (generatingSequence === contact.contact_id ? 'in-progress' : 'pending');
 								
 								return (
 								<View key={contact.contact_id} style={{ 
 									backgroundColor: '#fff', 
-									borderRadius: 8, 
-									padding: 12, 
-									marginRight: 12, 
-									minWidth: 280,
+									borderRadius: 12, 
+									padding: 16, 
+									marginRight: 16, 
+									width: 320,
 									borderWidth: 2,
-									borderColor: hasSequence ? '#22c55e' : '#e5e7eb'
+									borderColor: hasSequence ? '#22c55e' : '#e5e7eb',
+									shadowColor: '#000',
+									shadowOffset: { width: 0, height: 2 },
+									shadowOpacity: 0.1,
+									shadowRadius: 4,
+									elevation: 3
 								}}>
-									{/* Saved Badge */}
-									{hasSequence && (
-										<View style={{ 
-											position: 'absolute', 
-											top: 8, 
-											right: 8, 
-											backgroundColor: '#22c55e', 
-											paddingHorizontal: 8, 
-											paddingVertical: 4, 
-											borderRadius: 12,
-											flexDirection: 'row',
-											alignItems: 'center',
-											gap: 4
-										}}>
-											<Ionicons name="checkmark-circle" size={12} color="#fff" />
-											<Text style={{ color: '#fff', fontSize: 10, fontWeight: '700' }}>
-												{sequenceCount} EMAIL{sequenceCount > 1 ? 'S' : ''}
-											</Text>
-										</View>
-									)}
-									
-									{/* Contact icon and info */}
-									<View style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 12 }}>
-										<View style={{ 
-											width: 40, 
-											height: 40, 
-											borderRadius: 20, 
-											backgroundColor: '#3b82f6', 
-											justifyContent: 'center', 
-											alignItems: 'center',
-											marginRight: 12
-										}}>
-											<Text style={{ color: '#fff', fontSize: 18, fontWeight: '600' }}>
-												{contact.first_name?.[0] || contact.last_name?.[0] || contact.email[0].toUpperCase()}
-											</Text>
-										</View>
-										<View style={{ flex: 1 }}>
-											<Text style={{ fontSize: 16, fontWeight: '700', color: '#374151', marginBottom: 2 }}>
-												{contact.first_name && contact.last_name 
-													? `${contact.first_name} ${contact.last_name}` 
-													: contact.first_name || contact.last_name || 'Unknown Contact'
-												}
-											</Text>
-											<Text style={{ fontSize: 14, color: '#6b7280', marginBottom: 2 }}>
-												{contact.email}
-											</Text>
-											<Text style={{ fontSize: 12, color: '#9ca3af' }}>
-												{contact.email.split('@')[1] || 'Unknown Company'}
-											</Text>
-										</View>
-									</View>
-
-									{/* Sequence Status Display */}
-									{hasSequence ? (
-										<View style={{ 
-											backgroundColor: '#f0fdf4', 
-											padding: 10, 
-											borderRadius: 8, 
-											marginBottom: 12,
-											borderLeftWidth: 3,
-											borderLeftColor: '#22c55e'
-										}}>
-											<View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-												<Ionicons name="mail-outline" size={14} color="#166534" />
-												<Text style={{ color: '#166534', fontSize: 13, fontWeight: '700' }}>
-													Sequence Configured
-												</Text>
-											</View>
-											<Text style={{ color: '#166534', fontSize: 11, marginBottom: 2 }}>
-												• {sequenceCount} email{sequenceCount > 1 ? 's' : ''} scheduled
-											</Text>
-											<Text style={{ color: '#166534', fontSize: 11, marginBottom: 8 }}>
-												• Days: {hasSequence.emails.map((e: any) => e.day).join(', ')}
-											</Text>
-											
-											{/* View/Edit Buttons */}
-											<View style={{ flexDirection: 'row', gap: 6 }}>
-												<TouchableOpacity 
-													style={{ 
-														flex: 1, 
-														backgroundColor: '#22c55e', 
-														paddingVertical: 6, 
-														paddingHorizontal: 10, 
-														borderRadius: 6,
-														flexDirection: 'row',
-														alignItems: 'center',
-														justifyContent: 'center',
-														gap: 4
-													}}
-													onPress={() => handleOpenSequenceConfig(contact.contact_id)}
-												>
-													<Ionicons name="eye-outline" size={12} color="#fff" />
-													<Text style={{ color: '#fff', fontSize: 11, fontWeight: '600' }}>
-														View
+									{/* Header with Badge */}
+									<View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+										{/* Contact Info */}
+										<View style={{ flex: 1, paddingRight: hasSequence ? 90 : 0 }}>
+											<View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+												<View style={{ 
+													width: 48, 
+													height: 48, 
+													borderRadius: 24, 
+													backgroundColor: '#3b82f6', 
+													justifyContent: 'center', 
+													alignItems: 'center',
+													marginRight: 12
+												}}>
+													<Text style={{ color: '#fff', fontSize: 20, fontWeight: '600' }}>
+														{contact.first_name?.[0] || contact.last_name?.[0] || contact.email[0].toUpperCase()}
 													</Text>
-												</TouchableOpacity>
-												<TouchableOpacity 
-													style={{ 
-														flex: 1, 
-														backgroundColor: '#3b82f6', 
-														paddingVertical: 6, 
-														paddingHorizontal: 10, 
-														borderRadius: 6,
-														flexDirection: 'row',
-														alignItems: 'center',
-														justifyContent: 'center',
-														gap: 4
-													}}
-													onPress={() => handleOpenSequenceConfig(contact.contact_id)}
-												>
-													<Ionicons name="pencil-outline" size={12} color="#fff" />
-													<Text style={{ color: '#fff', fontSize: 11, fontWeight: '600' }}>
-														Edit
+												</View>
+												<View style={{ flex: 1, minWidth: 0 }}>
+													<Text 
+														style={{ fontSize: 17, fontWeight: '700', color: '#111827', marginBottom: 4 }}
+														numberOfLines={1}
+														ellipsizeMode="tail"
+													>
+														{contact.first_name && contact.last_name 
+															? `${contact.first_name} ${contact.last_name}` 
+															: contact.first_name || contact.last_name || 'Unknown Contact'
+														}
 													</Text>
-												</TouchableOpacity>
+													<Text 
+														style={{ fontSize: 13, color: '#6b7280' }}
+														numberOfLines={1}
+														ellipsizeMode="tail"
+													>
+														{contact.email}
+													</Text>
+												</View>
 											</View>
 										</View>
-									) : (
-										<>
-											{/* No Sequence - Show Action Buttons */}
-											<View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
-												<TouchableOpacity 
-													style={{ 
-														flex: 1, 
-														backgroundColor: enrichingContact === contact.contact_id ? '#e0e7ff' : '#f3f4f6',
-														paddingVertical: 8, 
-														paddingHorizontal: 12, 
-														borderRadius: 6,
-														flexDirection: 'row',
-														alignItems: 'center',
-														justifyContent: 'center',
-														opacity: enrichingContact === contact.contact_id ? 0.7 : 1
-													}}
-													onPress={() => handleEnrichContact(contact.contact_id, contact.email)}
-													disabled={enrichingContact === contact.contact_id}
-												>
-													{enrichingContact === contact.contact_id ? (
-														<>
-															<ActivityIndicator size="small" color="#3b82f6" style={{ marginRight: 4 }} />
-															<Text style={{ color: '#3b82f6', fontSize: 12, fontWeight: '600' }}>...</Text>
-														</>
-													) : (
-														<>
-															<Ionicons name="search-outline" size={14} color="#3b82f6" style={{ marginRight: 4 }} />
-															<Text style={{ color: '#3b82f6', fontSize: 12, fontWeight: '600' }}>Enrich</Text>
-														</>
-													)}
-												</TouchableOpacity>
-												<TouchableOpacity 
-													style={{ 
-														flex: 1, 
-														backgroundColor: generatingSequence === contact.contact_id ? '#e0e7ff' : '#f3f4f6',
-														paddingVertical: 8, 
-														paddingHorizontal: 12, 
-														borderRadius: 6,
-														flexDirection: 'row',
-														alignItems: 'center',
-														justifyContent: 'center',
-														opacity: generatingSequence === contact.contact_id ? 0.7 : 1
-													}}
-													onPress={() => handleOpenSequenceConfig(contact.contact_id)}
-													disabled={generatingSequence === contact.contact_id}
-												>
-													{generatingSequence === contact.contact_id ? (
-														<>
-															<ActivityIndicator size="small" color="#3b82f6" style={{ marginRight: 4 }} />
-															<Text style={{ color: '#3b82f6', fontSize: 12, fontWeight: '600' }}>...</Text>
-														</>
-													) : (
-														<>
-															<Ionicons name="flash-outline" size={14} color="#3b82f6" style={{ marginRight: 4 }} />
-															<Text style={{ color: '#3b82f6', fontSize: 12, fontWeight: '600' }}>Sequence</Text>
-														</>
-													)}
-												</TouchableOpacity>
-											</View>
-											
-											{/* Warning: No Sequence */}
+										
+										{/* Success Badge */}
+										{hasSequence && (
 											<View style={{ 
-												backgroundColor: '#fef3c7', 
-												padding: 8, 
-												borderRadius: 6,
-												marginBottom: 12,
+												position: 'absolute', 
+												top: 0, 
+												right: 0, 
+												backgroundColor: '#22c55e', 
+												paddingHorizontal: 10, 
+												paddingVertical: 6, 
+												borderRadius: 16,
 												flexDirection: 'row',
 												alignItems: 'center',
-												gap: 6
+												gap: 5,
+												zIndex: 10
 											}}>
-												<Ionicons name="warning-outline" size={12} color="#92400e" />
-												<Text style={{ color: '#92400e', fontSize: 10, fontWeight: '600' }}>
-													No sequence - will use campaign template
+												<Ionicons name="checkmark-circle" size={14} color="#fff" />
+												<Text style={{ color: '#fff', fontSize: 11, fontWeight: '700' }}>
+													{sequenceCount} EMAIL{sequenceCount > 1 ? 'S' : ''}
 												</Text>
 											</View>
-										</>
-									)}
+										)}
+									</View>
 
-											{/* Persona Dropdown: visible only when explicitly opened via Change */}
-											<View style={{ marginTop: 8 }}>
-												{showPersonaDropdown === contact.contact_id ? (
-													<View style={{ backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 8, padding: 8 }}>
-														<Text style={{ fontSize: 12, color: '#6b7280', marginBottom: 8, fontWeight: '600' }}>
-															{suggestedPersonaId ? 'AI Suggested:' : 'Select Persona:'}
+									{/* 3-Step Workflow */}
+									<View style={{ marginBottom: 16 }}>
+										<Text style={{ fontSize: 12, fontWeight: '600', color: '#6b7280', marginBottom: 12, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+											Setup Steps
+										</Text>
+										
+										{/* Step 1: Enrich Contact */}
+										<View style={{ marginBottom: 12 }}>
+											<View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+												<View style={{
+													width: 24,
+													height: 24,
+													borderRadius: 12,
+													backgroundColor: step1Status === 'completed' ? '#22c55e' : step1Status === 'in-progress' ? '#3b82f6' : '#e5e7eb',
+													justifyContent: 'center',
+													alignItems: 'center',
+													marginRight: 10
+												}}>
+													{step1Status === 'completed' ? (
+														<Ionicons name="checkmark" size={14} color="#fff" />
+													) : step1Status === 'in-progress' ? (
+														<ActivityIndicator size="small" color="#fff" />
+													) : (
+														<Text style={{ color: '#9ca3af', fontSize: 12, fontWeight: '700' }}>1</Text>
+													)}
+												</View>
+												<Text style={{ 
+													fontSize: 14, 
+													fontWeight: '600', 
+													color: step1Status === 'completed' ? '#166534' : step1Status === 'in-progress' ? '#1e40af' : '#6b7280',
+													flex: 1
+												}}>
+													Enrich Contact
+												</Text>
+											</View>
+											{step1Status !== 'completed' && (
+												<TouchableOpacity 
+													style={{ 
+														backgroundColor: step1Status === 'in-progress' ? '#e0e7ff' : '#f3f4f6',
+														paddingVertical: 10,
+														paddingHorizontal: 12,
+														borderRadius: 8,
+														marginLeft: 34,
+														flexDirection: 'row',
+														alignItems: 'center',
+														justifyContent: 'center',
+														opacity: step1Status === 'in-progress' ? 0.7 : 1
+													}}
+													onPress={() => handleEnrichContact(contact.contact_id, contact.email)}
+													disabled={step1Status === 'in-progress'}
+												>
+													{step1Status === 'in-progress' ? (
+														<>
+															<ActivityIndicator size="small" color="#3b82f6" style={{ marginRight: 6 }} />
+															<Text style={{ color: '#3b82f6', fontSize: 13, fontWeight: '600' }}>Enriching...</Text>
+														</>
+													) : (
+														<>
+															<Ionicons name="search-outline" size={16} color="#3b82f6" style={{ marginRight: 6 }} />
+															<Text style={{ color: '#3b82f6', fontSize: 13, fontWeight: '600' }}>Start Enrichment</Text>
+														</>
+													)}
+												</TouchableOpacity>
+											)}
+										</View>
+
+										{/* Step 2: Match Persona */}
+										<View style={{ marginBottom: 12 }}>
+											<View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+												<View style={{
+													width: 24,
+													height: 24,
+													borderRadius: 12,
+													backgroundColor: step2Status === 'completed' ? '#22c55e' : '#e5e7eb',
+													justifyContent: 'center',
+													alignItems: 'center',
+													marginRight: 10
+												}}>
+													{step2Status === 'completed' ? (
+														<Ionicons name="checkmark" size={14} color="#fff" />
+													) : (
+														<Text style={{ color: '#9ca3af', fontSize: 12, fontWeight: '700' }}>2</Text>
+													)}
+												</View>
+												<Text style={{ 
+													fontSize: 14, 
+													fontWeight: '600', 
+													color: step2Status === 'completed' ? '#166534' : '#6b7280',
+													flex: 1
+												}}>
+													Match Persona
+												</Text>
+											</View>
+											{step2Status === 'completed' ? (
+												<View style={{ 
+													marginLeft: 34, 
+													padding: 10, 
+													backgroundColor: '#f0f9ff', 
+													borderRadius: 8,
+													borderLeftWidth: 3,
+													borderLeftColor: '#3b82f6'
+												}}>
+													<Text style={{ fontSize: 13, fontWeight: '700', color: '#1e40af', marginBottom: 2 }}>
+														{contactPersonas[contact.contact_id]?.name}
+													</Text>
+													{contactPersonas[contact.contact_id]?.role && (
+														<Text style={{ fontSize: 12, color: '#3b82f6' }}>
+															{contactPersonas[contact.contact_id].role}
 														</Text>
-														<ScrollView style={{ maxHeight: 300 }} showsVerticalScrollIndicator={true} nestedScrollEnabled={true}>
-															{personas.map((persona) => {
-																const isSuggested = persona.id === suggestedPersonaId;
-																const isSelected = persona.id === contactPersonas[contact.contact_id]?.id;
-																return (
-																	<TouchableOpacity
-																		key={persona.id}
-																		style={{
-																			padding: 12,
-																			borderRadius: 6,
-																			marginBottom: 4,
-																			backgroundColor: isSelected ? '#dbeafe' : isSuggested ? '#fef3c7' : '#fff',
-																			borderWidth: isSelected ? 2 : isSuggested ? 1 : 0,
-																			borderColor: isSelected ? '#3b82f6' : isSuggested ? '#f59e0b' : 'transparent'
-																		}}
-																		onPress={() => handlePersonaDropdownSelect(contact.contact_id, persona.id)}
-																	>
-																		<View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-																			<View style={{ flex: 1 }}>
-																				<Text style={{
-																					fontSize: 14,
-																					fontWeight: '600',
-																					color: isSelected ? '#1e40af' : '#111827'
-																				}}>
-																					{persona.name}
-																				</Text>
-																				{persona.role && (
-																					<Text style={{ fontSize: 12, color: '#6b7280', marginTop: 2 }}>
-																						{persona.role}
-																					</Text>
-																				)}
-																			</View>
-																			<View style={{ flexDirection: 'row', alignItems: 'center' }}>
-																				{isSuggested && (
-																					<View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginRight: 8 }}>
-																						<Ionicons name="star" size={12} color="#f59e0b" />
-																						<Text style={{ fontSize: 10, color: '#f59e0b', fontWeight: '600' }}>
-																							AI
-																						</Text>
-																					</View>
-																				)}
-																				{isSelected && (
-																					<Ionicons name="checkmark" size={16} color="#3b82f6" />
-																				)}
-																			</View>
-																		</View>
-																	</TouchableOpacity>
-																);
-															})}
-														</ScrollView>
-														<TouchableOpacity
-															style={{ marginTop: 8, padding: 8, backgroundColor: '#6b7280', borderRadius: 4 }}
-															onPress={() => setShowPersonaDropdown(null)}
+													)}
+													<TouchableOpacity
+														onPress={() => { setShowPersonaDropdown(contact.contact_id); setSuggestedPersonaId(null); }}
+														style={{ marginTop: 8, alignSelf: 'flex-start' }}
+													>
+														<Text style={{ fontSize: 12, color: '#3b82f6', fontWeight: '600' }}>Change Persona →</Text>
+													</TouchableOpacity>
+												</View>
+											) : (
+												<TouchableOpacity 
+													style={{ 
+														backgroundColor: step1Status === 'completed' ? '#3b82f6' : '#e5e7eb',
+														paddingVertical: 10,
+														paddingHorizontal: 12,
+														borderRadius: 8,
+														marginLeft: 34,
+														flexDirection: 'row',
+														alignItems: 'center',
+														justifyContent: 'center',
+														opacity: step1Status === 'completed' ? 1 : 0.5
+													}}
+													onPress={() => handleMatchPersonas(contact.contact_id)}
+													disabled={step1Status !== 'completed'}
+												>
+													<Ionicons name="person-outline" size={16} color={step1Status === 'completed' ? '#fff' : '#9ca3af'} style={{ marginRight: 6 }} />
+													<Text style={{ color: step1Status === 'completed' ? '#fff' : '#9ca3af', fontSize: 13, fontWeight: '600' }}>
+														Match Persona
+													</Text>
+												</TouchableOpacity>
+											)}
+										</View>
+
+										{/* Step 3: Generate Email Sequence */}
+										<View>
+											<View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+												<View style={{
+													width: 24,
+													height: 24,
+													borderRadius: 12,
+													backgroundColor: step3Status === 'completed' ? '#22c55e' : step3Status === 'in-progress' ? '#3b82f6' : '#e5e7eb',
+													justifyContent: 'center',
+													alignItems: 'center',
+													marginRight: 10
+												}}>
+													{step3Status === 'completed' ? (
+														<Ionicons name="checkmark" size={14} color="#fff" />
+													) : step3Status === 'in-progress' ? (
+														<ActivityIndicator size="small" color="#fff" />
+													) : (
+														<Text style={{ color: '#9ca3af', fontSize: 12, fontWeight: '700' }}>3</Text>
+													)}
+												</View>
+												<Text style={{ 
+													fontSize: 14, 
+													fontWeight: '600', 
+													color: step3Status === 'completed' ? '#166534' : step3Status === 'in-progress' ? '#1e40af' : '#6b7280',
+													flex: 1
+												}}>
+													Generate Emails
+												</Text>
+											</View>
+											{step3Status === 'completed' ? (
+												<View style={{ 
+													marginLeft: 34, 
+													padding: 12, 
+													backgroundColor: '#f0fdf4', 
+													borderRadius: 8,
+													borderLeftWidth: 3,
+													borderLeftColor: '#22c55e'
+												}}>
+													<View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+														<Ionicons name="mail-outline" size={14} color="#166534" />
+														<Text style={{ color: '#166534', fontSize: 13, fontWeight: '700', marginLeft: 6 }}>
+															{sequenceCount} email{sequenceCount > 1 ? 's' : ''} scheduled
+														</Text>
+													</View>
+													<Text style={{ color: '#166534', fontSize: 12, marginBottom: 10 }}>
+														Days: {hasSequence.emails.map((e: any) => e.day).join(', ')}
+													</Text>
+													<View style={{ flexDirection: 'row', gap: 8 }}>
+														<TouchableOpacity 
+															style={{ 
+																flex: 1, 
+																backgroundColor: '#22c55e', 
+																paddingVertical: 8, 
+																paddingHorizontal: 12, 
+																borderRadius: 6,
+																flexDirection: 'row',
+																alignItems: 'center',
+																justifyContent: 'center',
+																gap: 4
+															}}
+															onPress={() => handleOpenSequenceConfig(contact.contact_id)}
 														>
-															<Text style={{ color: '#fff', textAlign: 'center', fontSize: 12, fontWeight: '600' }}>
-																Cancel
+															<Ionicons name="eye-outline" size={14} color="#fff" />
+															<Text style={{ color: '#fff', fontSize: 12, fontWeight: '600' }}>
+																View
+															</Text>
+														</TouchableOpacity>
+														<TouchableOpacity 
+															style={{ 
+																flex: 1, 
+																backgroundColor: '#3b82f6', 
+																paddingVertical: 8, 
+																paddingHorizontal: 12, 
+																borderRadius: 6,
+																flexDirection: 'row',
+																alignItems: 'center',
+																justifyContent: 'center',
+																gap: 4
+															}}
+															onPress={() => handleOpenSequenceConfig(contact.contact_id)}
+														>
+															<Ionicons name="pencil-outline" size={14} color="#fff" />
+															<Text style={{ color: '#fff', fontSize: 12, fontWeight: '600' }}>
+																Edit
 															</Text>
 														</TouchableOpacity>
 													</View>
-												) : (!contactPersonas[contact.contact_id] ? (
-									<TouchableOpacity 
-										style={{ 
-											backgroundColor: '#3b82f6', 
-											paddingVertical: 10, 
-											paddingHorizontal: 12, 
-											borderRadius: 6,
-											flexDirection: 'row',
-											alignItems: 'center',
-															justifyContent: 'center'
-										}}
-										onPress={() => handleMatchPersonas(contact.contact_id)}
-									>
-										<Ionicons name="person-outline" size={16} color="#fff" style={{ marginRight: 6 }} />
-										<Text style={{ color: '#fff', fontSize: 13, fontWeight: '600' }}>Match Persona</Text>
-									</TouchableOpacity>
-												) : null)}
-											</View>
-
-											{/* Current Persona Display */}
-											{contactPersonas[contact.contact_id] && (
-												<View style={{ marginTop: 8, padding: 8, backgroundColor: '#f0f9ff', borderRadius: 6, borderLeftWidth: 3, borderLeftColor: '#3b82f6' }}>
-													<View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-														<Text style={{ fontSize: 12, color: '#1e40af', fontWeight: '600' }}>Current Persona:</Text>
-														<TouchableOpacity
-															onPress={() => { setShowPersonaDropdown(contact.contact_id); setSuggestedPersonaId(null); }}
-															style={{ paddingHorizontal: 8, paddingVertical: 4, backgroundColor: '#3b82f6', borderRadius: 4 }}
-														>
-															<Text style={{ fontSize: 10, color: '#fff', fontWeight: '600' }}>Change</Text>
-														</TouchableOpacity>
-													</View>
-													<Text style={{ fontSize: 14, color: '#1e40af', fontWeight: '700' }}>{contactPersonas[contact.contact_id].name}</Text>
-													{contactPersonas[contact.contact_id].role && (
-														<Text style={{ fontSize: 12, color: '#3b82f6', marginTop: 2 }}>{contactPersonas[contact.contact_id].role}</Text>
-													)}
 												</View>
+											) : (
+												<TouchableOpacity 
+													style={{ 
+														backgroundColor: step3Status === 'in-progress' ? '#e0e7ff' : (step2Status === 'completed' ? '#3b82f6' : '#e5e7eb'),
+														paddingVertical: 10,
+														paddingHorizontal: 12,
+														borderRadius: 8,
+														marginLeft: 34,
+														flexDirection: 'row',
+														alignItems: 'center',
+														justifyContent: 'center',
+														opacity: step3Status === 'in-progress' ? 0.7 : (step2Status === 'completed' ? 1 : 0.5)
+													}}
+													onPress={() => handleOpenSequenceConfig(contact.contact_id)}
+													disabled={step3Status === 'in-progress' || step2Status !== 'completed'}
+												>
+													{step3Status === 'in-progress' ? (
+														<>
+															<ActivityIndicator size="small" color="#3b82f6" style={{ marginRight: 6 }} />
+															<Text style={{ color: '#3b82f6', fontSize: 13, fontWeight: '600' }}>Generating...</Text>
+														</>
+													) : (
+														<>
+															<Ionicons name="flash-outline" size={16} color={step2Status === 'completed' ? '#fff' : '#9ca3af'} style={{ marginRight: 6 }} />
+															<Text style={{ color: step2Status === 'completed' ? '#fff' : '#9ca3af', fontSize: 13, fontWeight: '600' }}>
+																Generate Sequence
+															</Text>
+														</>
+													)}
+												</TouchableOpacity>
 											)}
+										</View>
+									</View>
+
+									{/* Persona Dropdown: visible only when explicitly opened via Change */}
+									{showPersonaDropdown === contact.contact_id && (
+										<View style={{ 
+											marginTop: 12, 
+											backgroundColor: '#f8fafc', 
+											borderWidth: 1, 
+											borderColor: '#e2e8f0', 
+											borderRadius: 8, 
+											padding: 12 
+										}}>
+											<Text style={{ fontSize: 12, color: '#6b7280', marginBottom: 8, fontWeight: '600' }}>
+												{suggestedPersonaId ? 'AI Suggested:' : 'Select Persona:'}
+											</Text>
+											<ScrollView style={{ maxHeight: 200 }} showsVerticalScrollIndicator={true} nestedScrollEnabled={true}>
+												{personas.map((persona) => {
+													const isSuggested = persona.id === suggestedPersonaId;
+													const isSelected = persona.id === contactPersonas[contact.contact_id]?.id;
+													return (
+														<TouchableOpacity
+															key={persona.id}
+															style={{
+																padding: 12,
+																borderRadius: 6,
+																marginBottom: 4,
+																backgroundColor: isSelected ? '#dbeafe' : isSuggested ? '#fef3c7' : '#fff',
+																borderWidth: isSelected ? 2 : isSuggested ? 1 : 0,
+																borderColor: isSelected ? '#3b82f6' : isSuggested ? '#f59e0b' : 'transparent'
+															}}
+															onPress={() => handlePersonaDropdownSelect(contact.contact_id, persona.id)}
+														>
+															<View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+																<View style={{ flex: 1 }}>
+																	<Text style={{
+																		fontSize: 14,
+																		fontWeight: '600',
+																		color: isSelected ? '#1e40af' : '#111827'
+																	}}>
+																		{persona.name}
+																	</Text>
+																	{persona.role && (
+																		<Text style={{ fontSize: 12, color: '#6b7280', marginTop: 2 }}>
+																			{persona.role}
+																		</Text>
+																	)}
+																</View>
+																<View style={{ flexDirection: 'row', alignItems: 'center' }}>
+																	{isSuggested && (
+																		<View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginRight: 8 }}>
+																			<Ionicons name="star" size={12} color="#f59e0b" />
+																			<Text style={{ fontSize: 10, color: '#f59e0b', fontWeight: '600' }}>
+																				AI
+																			</Text>
+																		</View>
+																	)}
+																	{isSelected && (
+																		<Ionicons name="checkmark" size={16} color="#3b82f6" />
+																	)}
+																</View>
+															</View>
+														</TouchableOpacity>
+													);
+												})}
+											</ScrollView>
+											<TouchableOpacity
+												style={{ marginTop: 8, padding: 10, backgroundColor: '#6b7280', borderRadius: 6 }}
+												onPress={() => setShowPersonaDropdown(null)}
+											>
+												<Text style={{ color: '#fff', textAlign: 'center', fontSize: 13, fontWeight: '600' }}>
+													Cancel
+												</Text>
+											</TouchableOpacity>
+										</View>
+									)}
 								</View>
 							);
 							})}
 						</ScrollView>
+						
+						{/* Pagination Indicator */}
+						{contacts.length > 1 && (
+							<View style={{ 
+								flexDirection: 'row', 
+								justifyContent: 'center', 
+								alignItems: 'center',
+								marginTop: 8,
+								marginBottom: 8,
+								gap: 6
+							}}>
+								{contacts.map((_, index) => (
+									<View
+										key={index}
+										style={{
+											width: currentCardIndex === index ? 24 : 8,
+											height: 8,
+											borderRadius: 4,
+											backgroundColor: currentCardIndex === index ? '#3b82f6' : '#d1d5db'
+										}}
+									/>
+								))}
+							</View>
+						)}
+						</>
 					) : (
 						<View style={{ 
 							backgroundColor: '#f9fafb', 
