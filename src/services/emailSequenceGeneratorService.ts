@@ -90,12 +90,18 @@ Preview Text: (one line)
 Email Body: (MUST be proper HTML with paragraph tags)
 
 📧 **EMAIL BODY HTML FORMAT (REQUIRED):**
-<p>Hi {{contact.first_name}},</p>
+<p>Hi ${fullName || contact.first_name || 'there'},</p>
 <p>[Opening paragraph - personalized hook based on enrichment or persona data]</p>
 <p>[Context paragraph - why you're reaching out now]</p>
 <p>[Value paragraph - tie benefits to their situation/persona challenges]</p>
 <p>[CTA paragraph - simple, low-friction ask to get a reply]</p>
-<p>Best regards,<br>{{user.email}}</p>
+<p>Best regards,<br>{{sender.email}}</p>
+
+⚠️ **CRITICAL: Use actual contact name, NO template variables in greeting:**
+- In the greeting, you MUST use the contact's actual first name "${fullName || contact.first_name || 'there'}" directly in the text
+- DO NOT use ANY template variables like {{contact.first_name}}, {{contact.name}}, or {{contact.first_name}} in the greeting or anywhere in the email body
+- Write the actual name directly, for example: "<p>Hi Rohaan,</p>" NOT "<p>Hi {{contact.first_name}},</p>"
+- The ONLY template variable you should use anywhere in the email is {{sender.email}} in the closing
 
 🚨 **CRITICAL: COMPLIMENTARY CLOSING RULES:**
 - The complimentary closing (e.g., "Best regards", "Sincerely", "Thanks") should match the SENDER's communication style, NOT the receiver's persona
@@ -106,7 +112,14 @@ Email Body: (MUST be proper HTML with paragraph tags)
   * "Thanks,"
   * "Best,"
 - DO NOT use the receiver's communication style or persona characteristics in the closing
-- The closing should always end with {{user.email}} which represents the SENDER's email address
+- **TEMPLATE VARIABLES - USE EXACTLY AS SHOWN:**
+  * You MUST use the contact's actual first name "${fullName || contact.first_name || 'there'}" directly in the greeting - DO NOT use template variables like {{contact.first_name}} or {{contact.name}} anywhere
+  * You MUST use \`{{sender.email}}\` EXACTLY as shown in the closing - this is the ONLY template variable you should use anywhere in the email
+  * The \`{{sender.email}}\` template variable will be replaced with the actual sender email address when the email is sent
+  * DO NOT replace \`{{sender.email}}\` with text like "Your Name" or any other placeholder
+  * DO NOT use {{contact.first_name}} or any other contact template variables - write the actual name directly
+  * Example greeting: Use \`<p>Hi ${fullName || contact.first_name || 'there'},</p>\` NOT \`<p>Hi {{contact.first_name}},</p>\`
+  * Example closing: Use \`<p>Best regards,<br>{{sender.email}}</p>\` NOT \`<p>Best regards,<br>Your Name</p>\` or \`<p>Best regards,<br>test@bobos.ai</p>\`
 
 ✅ **HTML REQUIREMENTS:**
 - MUST wrap each paragraph in <p></p> tags

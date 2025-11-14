@@ -306,7 +306,13 @@ async function handleSendEmail(queue: JobQueue, job: any) {
     
     console.log(`✅ Using email account: ${emailAccount.username} (${emailAccount.provider})`);
     
-    const ctx = { user, company: { name: (user?.email||'').split('@')[1] || 'example.com' }, contact, campaign };
+    const ctx = { 
+      user, 
+      sender: { email: emailAccount.username }, // Use the email account's username as sender email
+      company: { name: (user?.email||'').split('@')[1] || 'example.com' }, 
+      contact, 
+      campaign 
+    };
     
     // Determine email content (sequence vs campaign template)
     let html, subject;

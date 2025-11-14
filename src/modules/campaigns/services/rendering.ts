@@ -2,6 +2,7 @@ import Handlebars from 'handlebars';
 
 type Context = {
 	user: any;
+	sender?: { email: string }; // Sender email from email account
 	company: any;
 	contact: any;
 	campaign: any;
